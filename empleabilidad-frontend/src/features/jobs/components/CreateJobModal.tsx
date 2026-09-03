@@ -36,8 +36,8 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onSucce
         tipoContrato: data.tipoContrato,
         modalidad: data.modalidad,
         jornada: 'DIURNA',
-        salarioMinimo: Number(data.salarioMinimo),
-        salarioMaximo: Number(data.salarioMaximo),
+        salarioMinimo: data.salarioMinimo ? Number(data.salarioMinimo) : null,
+        salarioMaximo: data.salarioMaximo ? Number(data.salarioMaximo) : null,
         moneda: 'PEN',
         ubicacion: data.ubicacion,
         fechaVencimiento: new Date(`${data.fechaVencimiento}T23:59:59`).toISOString(),
@@ -48,13 +48,20 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onSucce
     };
 
     try {
+      console.log('Enviando payload:', payload);
+      console.log('ID de usuario (empresaId):', user.id);
       const createdJob = await jobService.createJob(user.id, payload);
+      console.log('Oferta creada:', createdJob);
       // Backend automatically sets state to BORRADOR. We must publish it!
       await jobService.publishJob(createdJob.id);
-      toast.success('Oferta publicada con xito!');
+      toast.success('Oferta publicada con éxito!');
       onSuccess();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al crear la oferta');
+      console.error('Error completo:', err);
+      console.error('Response data:', err.response?.data);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Error al crear la oferta';
+      toast.error(errorMessage);
+      setError(errorMessage);
     }
   };
 
@@ -102,7 +109,9 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onSucce
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1.5">Nivel</label>
-                <select className="w-full h-10 rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" {...register('nivelExperiencia')}>
+                <select className="w-full h-10 rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" {...register('nivelExperiencia')} defaultValue="EXPERTO">
+                  <option value="SIN_EXPERIENCIA">Sin Experiencia</option>
+                  <option value="PRACTICANTE">Practicante</option>
                   <option value="JUNIOR">Junior</option>
                   <option value="SEMI_SENIOR">Semi Senior</option>
                   <option value="SENIOR">Senior</option>
@@ -111,7 +120,7 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onSucce
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1.5">Modalidad</label>
-                <select className="w-full h-10 rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" {...register('modalidad')}>
+                <select className="w-full h-10 rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" {...register('modalidad')} defaultValue="REMOTO">
                   <option value="PRESENCIAL">Presencial</option>
                   <option value="REMOTO">Remoto</option>
                   <option value="HIBRIDO">Híbrido</option>
@@ -119,10 +128,13 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onSucce
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1.5">Contrato</label>
-                <select className="w-full h-10 rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" {...register('tipoContrato')}>
+                <select className="w-full h-10 rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" {...register('tipoContrato')} defaultValue="MEDIO_TIEMPO">
                   <option value="TIEMPO_COMPLETO">Tiempo Completo</option>
                   <option value="MEDIO_TIEMPO">Medio Tiempo</option>
                   <option value="FREELANCE">Freelance</option>
+                  <option value="TEMPORAL">Temporal</option>
+                  <option value="POR_PROYECTO">Por Proyecto</option>
+                  <option value="PRACTICAS">Prácticas</option>
                 </select>
               </div>
             </div>
