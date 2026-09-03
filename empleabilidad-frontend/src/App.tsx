@@ -114,19 +114,22 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardView />} />
-            <Route path="analytics" element={<AdminDashboardView />} />
-            <Route path="crm" element={<AdminDashboardView />} />
-            <Route path="ecommerce" element={<AdminDashboardView />} />
-            <Route path="layouts" element={<AdminDashboardView />} />
-            <Route path="email" element={<AdminDashboardView />} />
-            <Route path="chat" element={<AdminDashboardView />} />
-            <Route path="calendar" element={<AdminDashboardView />} />
-            <Route path="kanban" element={<AdminDashboardView />} />
-            <Route path="invoice" element={<AdminDashboardView />} />
-            <Route path="users" element={<AdminDashboardView />} />
-            <Route path="roles" element={<AdminDashboardView />} />
-            <Route path="pages" element={<AdminDashboardView />} />
-            <Route path="auth" element={<AdminDashboardView />} />
+            <Route path="usuarios" element={<AdminDashboardView />} />
+            <Route path="usuarios/listado" element={<AdminDashboardView />} />
+            <Route path="usuarios/candidatos" element={<AdminDashboardView />} />
+            <Route path="usuarios/empresas" element={<AdminDashboardView />} />
+            <Route path="usuarios/roles" element={<AdminDashboardView />} />
+            <Route path="ofertas" element={<AdminDashboardView />} />
+            <Route path="ofertas/listado" element={<AdminDashboardView />} />
+            <Route path="ofertas/categorias" element={<AdminDashboardView />} />
+            <Route path="postulaciones" element={<AdminDashboardView />} />
+            <Route path="postulaciones/listado" element={<AdminDashboardView />} />
+            <Route path="postulaciones/estados" element={<AdminDashboardView />} />
+            <Route path="postulaciones/entrevistas" element={<AdminDashboardView />} />
+            <Route path="estadisticas" element={<AdminDashboardView />} />
+            <Route path="notificaciones" element={<AdminDashboardView />} />
+            <Route path="reportes" element={<AdminDashboardView />} />
+            <Route path="configuracion" element={<AdminDashboardView />} />
           </Route>
 
           {/* --- RAMAS PROTEGIDAS --- */}

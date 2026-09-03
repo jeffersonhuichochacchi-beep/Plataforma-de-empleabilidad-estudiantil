@@ -33,23 +33,26 @@ export const AdminLayout = () => {
   };
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboards', path: '/admin/dashboard', badge: '3' },
-    { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
-    { icon: ShoppingBag, label: 'CRM', path: '/admin/crm' },
-    { icon: Store, label: 'eCommerce', path: '/admin/ecommerce' },
-    { icon: Menu, label: 'Layouts', path: '/admin/layouts', hasSubmenu: true },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
+    { icon: Users, label: 'Gestión de Usuarios', path: '/admin/usuarios', hasSubmenu: true },
+    { icon: ShoppingBag, label: 'Gestión de Ofertas', path: '/admin/ofertas', hasSubmenu: true },
+    { icon: FileText, label: 'Gestión de Postulaciones', path: '/admin/postulaciones', hasSubmenu: true },
+    { icon: BarChart3, label: 'Estadísticas', path: '/admin/estadisticas' },
   ];
 
   const appsPages = [
-    { icon: Mail, label: 'Email', path: '/admin/email' },
-    { icon: MessageSquare, label: 'Chat', path: '/admin/chat' },
-    { icon: Calendar, label: 'Calendar', path: '/admin/calendar' },
-    { icon: Columns3, label: 'Kanban', path: '/admin/kanban' },
-    { icon: FileText, label: 'Invoice', path: '/admin/invoice', badge: '4' },
-    { icon: Users, label: 'Users', path: '/admin/users', hasSubmenu: true },
-    { icon: Shield, label: 'Roles & Permissions', path: '/admin/roles', hasSubmenu: true },
-    { icon: FileStack, label: 'Pages', path: '/admin/pages', hasSubmenu: true },
-    { icon: Shield, label: 'Authentications', path: '/admin/auth', hasSubmenu: true },
+    { icon: Users, label: 'Usuarios', path: '/admin/usuarios/listado' },
+    { icon: Shield, label: 'Candidatos', path: '/admin/usuarios/candidatos' },
+    { icon: Store, label: 'Empresas', path: '/admin/usuarios/empresas' },
+    { icon: Shield, label: 'Roles y Permisos', path: '/admin/usuarios/roles' },
+    { icon: ShoppingBag, label: 'Ofertas de Empleo', path: '/admin/ofertas/listado' },
+    { icon: FileStack, label: 'Categorías de Ofertas', path: '/admin/ofertas/categorias' },
+    { icon: FileText, label: 'Postulaciones', path: '/admin/postulaciones/listado' },
+    { icon: MessageSquare, label: 'Estado de Postulaciones', path: '/admin/postulaciones/estados' },
+    { icon: Calendar, label: 'Entrevistas', path: '/admin/postulaciones/entrevistas' },
+    { icon: Mail, label: 'Notificaciones', path: '/admin/notificaciones' },
+    { icon: BarChart3, label: 'Reportes', path: '/admin/reportes' },
+    { icon: Columns3, label: 'Configuración', path: '/admin/configuracion' },
   ];
 
   return (
@@ -60,11 +63,11 @@ export const AdminLayout = () => {
         <div className="h-16 flex items-center px-6 border-b border-slate-200">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-slate-800">Vuexy</span>
+            <span className="text-xl font-bold text-slate-800">EmpleoAdmin</span>
           </div>
         </div>
 
@@ -103,7 +106,7 @@ export const AdminLayout = () => {
           {/* Apps & Pages Section */}
           <div className="mt-6">
             <div className="px-4 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Apps & Pages
+              Módulos del Sistema
             </div>
             <div className="space-y-1">
               {appsPages.map((item) => (
@@ -151,7 +154,7 @@ export const AdminLayout = () => {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search (Ctrl+/)"
+                placeholder="Buscar (Ctrl+/)"
                 className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
             </div>
