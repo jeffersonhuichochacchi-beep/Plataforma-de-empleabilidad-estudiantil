@@ -92,7 +92,14 @@ export const RegisterView: React.FC = () => {
       }
     } catch (error: any) {
       setDniVerifiedData(null);
-      const msg = error.response?.data?.message || 'Error al consultar DNI. Ingréselo manualmente.';
+      const status = error.response?.status;
+      const serverMsg = error.response?.data?.message;
+      let msg = serverMsg || 'Error al consultar DNI. Ingréselo manualmente.';
+      if (status === 404) {
+        msg = 'No se encontró el DNI en el servicio de consultas. Verifica el número o completa los datos manualmente.';
+      } else if (status === 502) {
+        msg = serverMsg || 'El servicio de consultas rechazó la petición. Puedes ingresar los datos manualmente.';
+      }
       toast.error(msg);
     } finally {
       setIsValidatingDni(false);
@@ -123,7 +130,14 @@ export const RegisterView: React.FC = () => {
       }
     } catch (error: any) {
       setRucVerifiedData(null);
-      const msg = error.response?.data?.message || 'Error al consultar RUC. Ingrese los datos manualmente.';
+      const status = error.response?.status;
+      const serverMsg = error.response?.data?.message;
+      let msg = serverMsg || 'Error al consultar RUC. Ingrese los datos manualmente.';
+      if (status === 404) {
+        msg = 'No se encontró el RUC en el servicio de consultas. Verifica el número o completa los datos manualmente.';
+      } else if (status === 502) {
+        msg = serverMsg || 'El servicio de consultas rechazó la petición. Puedes ingresar los datos manualmente.';
+      }
       toast.error(msg);
     } finally {
       setIsValidatingRuc(false);

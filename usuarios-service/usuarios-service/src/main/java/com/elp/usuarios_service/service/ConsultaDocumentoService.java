@@ -2,6 +2,8 @@ package com.elp.usuarios_service.service;
 
 import com.elp.usuarios_service.dto.DniConsultaResponseDTO;
 import com.elp.usuarios_service.dto.RucConsultaResponseDTO;
+import com.elp.usuarios_service.exception.ConsultaProveedorException;
+import com.elp.usuarios_service.exception.DocumentoNoEncontradoException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -87,16 +89,19 @@ public class ConsultaDocumentoService {
         }
         String token = obtenerToken();
         String url = dniUrl + "/" + dni + "?token=" + token;
-        log.info("Consultando DNI {} en APIsPERU", dni);
+        log.info("Consultando DNI {} en APIsPERU - URL: {}", dni, url);
         try {
-            HttpEntity<Void> request = new HttpEntity<>(headersConToken());
+            // No usar headers Bearer, solo el token en la URL
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Void> request = new HttpEntity<>(headers);
             ResponseEntity<DniConsultaResponseDTO> response = restTemplate.exchange(
                     url, HttpMethod.GET, request, DniConsultaResponseDTO.class);
             DniConsultaResponseDTO resultado = response.getBody();
             if (resultado == null || Boolean.FALSE.equals(resultado.getSuccess()) || resultado.getNombres() == null) {
-                String errorMsg = (resultado != null && resultado.getMessage() != null) 
+                String errorMsg = (resultado != null && resultado.getMessage() != null)
                         ? resultado.getMessage() : "No se encontraron datos para el DNI ingresado";
-                throw new RuntimeException(errorMsg);
+                throw new DocumentoNoEncontradoException(errorMsg);
             }
             String nombreCompleto = (resultado.getNombres() + " " +
                     (resultado.getApellidoPaterno() != null ? resultado.getApellidoPaterno() : "") + " " +
@@ -105,11 +110,12 @@ public class ConsultaDocumentoService {
             resultado.setSuccess(true);
             return resultado;
         } catch (HttpClientErrorException.Unauthorized e) {
-            log.warn("Token invalido o expirado al consultar DNI");
-            throw new RuntimeException("Token de consulta no valido o expirado");
+            log.warn("Token invalido, expirado o sin creditos al consultar DNI {}: {}", dni, e.getResponseBodyAsString());
+            throw new ConsultaProveedorException(
+                    "El servicio de consultas rechazó la petición (token inválido, créditos agotados o documento no disponible en el plan). Revisa tu cuenta en apisperu.com");
         } catch (HttpClientErrorException e) {
             log.error("Error HTTP al consultar DNI {}: {} - {}", dni, e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("No se encontraron datos para el DNI ingresado");
+            throw new ConsultaProveedorException("El servicio de consultas no está disponible en este momento (error " + e.getStatusCode().value() + "). Inténtalo nuevamente.");
         }
     }
 
@@ -119,25 +125,29 @@ public class ConsultaDocumentoService {
         }
         String token = obtenerToken();
         String url = rucUrl + "/" + ruc + "?token=" + token;
-        log.info("Consultando RUC {} en APIsPERU", ruc);
+        log.info("Consultando RUC {} en APIsPERU - URL: {}", ruc, url);
         try {
-            HttpEntity<Void> request = new HttpEntity<>(headersConToken());
+            // No usar headers Bearer, solo el token en la URL
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Void> request = new HttpEntity<>(headers);
             ResponseEntity<RucConsultaResponseDTO> response = restTemplate.exchange(
                     url, HttpMethod.GET, request, RucConsultaResponseDTO.class);
             RucConsultaResponseDTO resultado = response.getBody();
             if (resultado == null || Boolean.FALSE.equals(resultado.getSuccess()) || resultado.getRazonSocial() == null) {
-                String errorMsg = (resultado != null && resultado.getMessage() != null) 
+                String errorMsg = (resultado != null && resultado.getMessage() != null)
                         ? resultado.getMessage() : "No se encontraron datos para el RUC ingresado";
-                throw new RuntimeException(errorMsg);
+                throw new DocumentoNoEncontradoException(errorMsg);
             }
             resultado.setSuccess(true);
             return resultado;
         } catch (HttpClientErrorException.Unauthorized e) {
-            log.warn("Token invalido o expirado al consultar RUC");
-            throw new RuntimeException("Token de consulta no valido o expirado");
+            log.warn("Token invalido, expirado o sin creditos al consultar RUC {}: {}", ruc, e.getResponseBodyAsString());
+            throw new ConsultaProveedorException(
+                    "El servicio de consultas rechazó la petición (token inválido, créditos agotados o documento no disponible en el plan). Revisa tu cuenta en apisperu.com");
         } catch (HttpClientErrorException e) {
             log.error("Error HTTP al consultar RUC {}: {} - {}", ruc, e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("No se encontraron datos para el RUC ingresado");
+            throw new ConsultaProveedorException("El servicio de consultas no está disponible en este momento (error " + e.getStatusCode().value() + "). Inténtalo nuevamente.");
         }
     }
 }
