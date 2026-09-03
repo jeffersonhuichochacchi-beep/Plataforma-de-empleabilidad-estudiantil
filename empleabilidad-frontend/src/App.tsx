@@ -14,6 +14,7 @@ import { AdminLayout } from './app/layouts/AdminLayout';
 import { EmpleosView } from './features/jobs/views/EmpleosView';
 import { JobDetailView } from './features/jobs/views/JobDetailView';
 import { CompanyOfertasView } from './features/jobs/views/CompanyOfertasView';
+import { CandidateSearchView } from './features/jobs/views/CandidateSearchView';
 import { ProfileOnboardingView } from './features/profile/views/ProfileOnboardingView';
 import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
 
@@ -69,13 +70,10 @@ const Inicio = () => (
 const EmpresasPublicas = () => <div className="p-8"><h1 className="text-3xl font-bold text-slate-800">Explorar Empresas</h1><p className="text-slate-500 mt-2">Descubre tu próximo gran lugar de trabajo.</p></div>;
 
 // --- VISTAS PROTEGIDAS (CANDIDATO) ---
-const CandidatoBuscar = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Buscar Ofertas</h1><p className="text-slate-500 mt-2">Usa nuestros filtros para encontrar tu match perfecto.</p></div>;
-
 const CandidatoPostulaciones = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Mis Postulaciones</h1><p className="text-slate-500 mt-2">Haz seguimiento al estado de tus procesos.</p></div>;
 const CandidatoEntrevistas = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Mis Entrevistas</h1><p className="text-slate-500 mt-2">Organiza y prepárate para tus próximas citas.</p></div>;
 
 // --- VISTAS PROTEGIDAS (EMPRESA) ---
-
 const EmpresaCandidatos = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Gestión de Candidatos</h1><p className="text-slate-500 mt-2">Filtra y revisa los perfiles que han aplicado a tus ofertas.</p></div>;
 const EmpresaEvaluaciones = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Evaluaciones Técnicas</h1><p className="text-slate-500 mt-2">Revisa las pruebas enviadas a los postulantes.</p></div>;
 
@@ -138,7 +136,7 @@ function App() {
             {/* CANDIDATO */}
             <Route path="/candidato" element={<CandidateLayout />}>
               <Route index element={<Navigate to="buscar" replace />} />
-              <Route path="buscar" element={<CandidatoBuscar />} />
+              <Route path="buscar" element={<CandidateSearchView />} />
               <Route path="perfil" element={<ProfileOnboardingView />} />
               <Route path="postulaciones" element={<CandidatoPostulaciones />} />
               <Route path="entrevistas" element={<CandidatoEntrevistas />} />
