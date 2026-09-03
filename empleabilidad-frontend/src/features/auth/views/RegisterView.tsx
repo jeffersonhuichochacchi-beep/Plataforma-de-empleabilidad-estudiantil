@@ -47,8 +47,7 @@ export const RegisterView: React.FC = () => {
       login(response.token, user);
       toast.success('Cuenta creada exitosamente!', { icon: '🎉' });
 
-      const redirectTo = location.state?.returnTo || '/candidato/buscar';
-      navigate(redirectTo);
+      navigate('/auth/login');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Error al registrar candidato');
     }
@@ -61,7 +60,7 @@ export const RegisterView: React.FC = () => {
       const user = await authService.getMe();
       login(response.token, user);
       toast.success('Empresa registrada correctamente!', { icon: '🏢' });
-      navigate('/empresa/ofertas');
+      navigate('/auth/login');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Error al registrar empresa');
     }
