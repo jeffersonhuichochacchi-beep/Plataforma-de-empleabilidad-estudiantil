@@ -7,7 +7,7 @@ import { Input } from '@/shared/components/Input';
 import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserCircle, Building2, ShieldCheck } from 'lucide-react';
+import { UserCircle, Building2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const candidatoSchema = z.object({
@@ -30,6 +30,7 @@ type EmpresaFormValues = z.infer<typeof empresaSchema>;
 
 export const RegisterView: React.FC = () => {
   const [role, setRole] = useState<'ESTUDIANTE' | 'EMPRESA'>('ESTUDIANTE');
+  const [showPassword, setShowPassword] = useState(false);
   const location = useLocation();
   const { login } = useAuthStore();
   const navigate = useNavigate();
@@ -109,7 +110,16 @@ export const RegisterView: React.FC = () => {
               <Input label="Apellidos" placeholder="Pérez" {...candidatoForm.register('apellidos')} error={candidatoForm.formState.errors.apellidos?.message} />
             </div>
             <Input label="Correo electrónico" type="email" placeholder="juan@email.com" {...candidatoForm.register('email')} error={candidatoForm.formState.errors.email?.message} />
-            <Input label="Contraseña" type="password" placeholder="••••••••" {...candidatoForm.register('password')} error={candidatoForm.formState.errors.password?.message} />
+            <div className="relative">
+              <Input label="Contraseña" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...candidatoForm.register('password')} error={candidatoForm.formState.errors.password?.message} />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
             <Button type="submit" className="w-full mt-2" isLoading={candidatoForm.formState.isSubmitting}>
               Unirse como Profesional
             </Button>
@@ -119,7 +129,16 @@ export const RegisterView: React.FC = () => {
             <Input label="RUC" placeholder="Ej: 20123456789" {...empresaForm.register('ruc')} error={empresaForm.formState.errors.ruc?.message} />
             <Input label="Razón Social" placeholder="Mi Empresa S.A.C" {...empresaForm.register('razonSocial')} error={empresaForm.formState.errors.razonSocial?.message} />
             <Input label="Correo Corporativo" type="email" placeholder="contacto@empresa.com" {...empresaForm.register('email')} error={empresaForm.formState.errors.email?.message} />
-            <Input label="Contraseña" type="password" placeholder="••••••••" {...empresaForm.register('password')} error={empresaForm.formState.errors.password?.message} />
+            <div className="relative">
+              <Input label="Contraseña" type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...empresaForm.register('password')} error={empresaForm.formState.errors.password?.message} />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
             <Button type="submit" className="w-full mt-2" isLoading={empresaForm.formState.isSubmitting}>
               Unirse como Empresa
             </Button>

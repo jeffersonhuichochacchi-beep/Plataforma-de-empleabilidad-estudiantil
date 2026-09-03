@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,7 +7,7 @@ import { Input } from '@/shared/components/Input';
 import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const loginSchema = z.object({
@@ -20,6 +20,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export const LoginView: React.FC = () => {
   const { login } = useAuthStore();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -68,13 +69,22 @@ export const LoginView: React.FC = () => {
           error={errors.email?.message}
         />
         
-        <Input
-          label="Contraseña"
-          type="password"
-          placeholder="••••••••"
-          {...register('password')}
-          error={errors.password?.message}
-        />
+        <div className="relative">
+          <Input
+            label="Contraseña"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="••••••••"
+            {...register('password')}
+            error={errors.password?.message}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-9 text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
 
         <Button type="submit" className="w-full" isLoading={isSubmitting}>
           Iniciar sesión
