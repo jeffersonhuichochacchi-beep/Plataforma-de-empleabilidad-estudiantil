@@ -9,11 +9,13 @@ import { ProtectedRoute } from './core/ProtectedRoute';
 import { PublicLayout } from './app/layouts/PublicLayout';
 import { CandidateLayout } from './app/layouts/CandidateLayout';
 import { CompanyLayout } from './app/layouts/CompanyLayout';
+import { AdminLayout } from './app/layouts/AdminLayout';
 
 import { EmpleosView } from './features/jobs/views/EmpleosView';
 import { JobDetailView } from './features/jobs/views/JobDetailView';
 import { CompanyOfertasView } from './features/jobs/views/CompanyOfertasView';
 import { ProfileOnboardingView } from './features/profile/views/ProfileOnboardingView';
+import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
 
 // --- VISTAS PUBLICAS (VISITANTE) ---
 const Inicio = () => (
@@ -42,6 +44,23 @@ const Inicio = () => (
         </a>
         <a href="/empleos" className="w-full sm:w-auto bg-white text-slate-700 border border-slate-200 px-8 py-4 rounded-xl font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all text-lg">
           Explorar empleos
+        </a>
+      </div>
+      
+      {/* Admin Panel Link - Dev Only */}
+      <div className="mt-16 pt-8 border-t border-slate-200 w-full max-w-md">
+        <p className="text-sm text-slate-500 mb-3">Panel de Administración</p>
+        <a 
+          href="/admin/dashboard" 
+          className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:from-violet-700 hover:to-indigo-700 transition-all shadow-lg shadow-violet-600/30"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="14" y="3" width="7" height="7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="14" y="14" width="7" height="7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="3" y="14" width="7" height="7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Acceder al Panel Admin
         </a>
       </div>
     </div>
@@ -89,6 +108,25 @@ function App() {
           <Route path="/auth" element={<AuthLayout />}>
             <Route path="login" element={<LoginView />} />
             <Route path="register" element={<RegisterView />} />
+          </Route>
+
+          {/* --- ADMIN (PÚBLICO POR AHORA) --- */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboardView />} />
+            <Route path="analytics" element={<AdminDashboardView />} />
+            <Route path="crm" element={<AdminDashboardView />} />
+            <Route path="ecommerce" element={<AdminDashboardView />} />
+            <Route path="layouts" element={<AdminDashboardView />} />
+            <Route path="email" element={<AdminDashboardView />} />
+            <Route path="chat" element={<AdminDashboardView />} />
+            <Route path="calendar" element={<AdminDashboardView />} />
+            <Route path="kanban" element={<AdminDashboardView />} />
+            <Route path="invoice" element={<AdminDashboardView />} />
+            <Route path="users" element={<AdminDashboardView />} />
+            <Route path="roles" element={<AdminDashboardView />} />
+            <Route path="pages" element={<AdminDashboardView />} />
+            <Route path="auth" element={<AdminDashboardView />} />
           </Route>
 
           {/* --- RAMAS PROTEGIDAS --- */}
