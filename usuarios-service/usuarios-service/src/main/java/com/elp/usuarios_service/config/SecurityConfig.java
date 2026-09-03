@@ -32,7 +32,15 @@ public class SecurityConfig {
             .cors(org.springframework.security.config.Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/registro/estudiante", "/api/auth/registro/empresa").permitAll()
+                .requestMatchers(
+                    "/api/auth/login",
+                    "/api/auth/registro/estudiante",
+                    "/api/auth/registro/empresa",
+                    "/api/consultas/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
