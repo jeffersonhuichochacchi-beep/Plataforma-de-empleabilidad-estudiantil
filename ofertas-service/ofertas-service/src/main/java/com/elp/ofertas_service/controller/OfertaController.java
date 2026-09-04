@@ -65,19 +65,19 @@ public class OfertaController {
     }
 
     @PatchMapping("/{id}/pausar")
-    @PreAuthorize("hasAnyRole('EMPRESA', 'RECLUTADOR', 'ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('EMPRESA', 'RECLUTADOR', 'ADMINISTRADOR', 'ESTUDIANTE')")
     public ResponseEntity<OfertaResponse> pausarOferta(@PathVariable UUID id) {
         return ResponseEntity.ok(ofertaService.pausarOferta(id, SecurityUtils.getUsuarioLogueadoId()));
     }
 
     @PatchMapping("/{id}/cerrar")
-    @PreAuthorize("hasAnyRole('EMPRESA', 'RECLUTADOR', 'ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('EMPRESA', 'RECLUTADOR', 'ADMINISTRADOR', 'ESTUDIANTE')")
     public ResponseEntity<OfertaResponse> cerrarOferta(@PathVariable UUID id) {
         return ResponseEntity.ok(ofertaService.cerrarOferta(id, SecurityUtils.getUsuarioLogueadoId()));
     }
 
     @PatchMapping("/{id}/cancelar")
-    @PreAuthorize("hasAnyRole('EMPRESA', 'RECLUTADOR', 'ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('EMPRESA', 'RECLUTADOR', 'ADMINISTRADOR', 'ESTUDIANTE')")
     public ResponseEntity<OfertaResponse> cancelarOferta(@PathVariable UUID id) {
         return ResponseEntity.ok(ofertaService.cancelarOferta(id, SecurityUtils.getUsuarioLogueadoId()));
     }

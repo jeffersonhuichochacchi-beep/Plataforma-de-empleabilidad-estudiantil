@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 import { jobService } from '../../jobs/services/job.service';
 import type { OfertaResponse } from '../../jobs/types/job.types';
 import type { PageResponse } from '@/shared/types';
+import { ViewJobModal } from '../../jobs/components/ViewJobModal';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 type EstadoFiltro = 'Todos' | 'PENDIENTE_APROBACION' | 'PUBLICADA' | 'BORRADOR' | 'RECHAZADA' | 'PAUSADA' | 'CERRADA';
@@ -175,6 +176,7 @@ export const AdminOfertasView = () => {
   const [isLoading, setIsLoading]       = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rechazarTarget, setRechazarTarget] = useState<{ id: string; titulo: string } | null>(null);
+  const [viewingJob, setViewingJob]     = useState<OfertaResponse | null>(null);
 
   // Stats derivadas de los datos del backend
   const totalOfertas    = jobsData?.totalElements ?? 0;
@@ -263,6 +265,14 @@ export const AdminOfertasView = () => {
           titulo={rechazarTarget.titulo}
           onConfirm={handleRechazar}
           onCancel={() => setRechazarTarget(null)}
+        />
+      )}
+
+      {/* Modal ver detalle */}
+      {viewingJob && (
+        <ViewJobModal
+          job={viewingJob}
+          onClose={() => setViewingJob(null)}
         />
       )}
 
@@ -438,7 +448,11 @@ export const AdminOfertasView = () => {
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-end gap-2">
                               {/* Ver */}
-                              <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-violet-600" title="Ver oferta">
+                              <button 
+                                onClick={() => setViewingJob(oferta)}
+                                className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-violet-600" 
+                                title="Ver oferta"
+                              >
                                 <Eye className="w-4 h-4" />
                               </button>
 

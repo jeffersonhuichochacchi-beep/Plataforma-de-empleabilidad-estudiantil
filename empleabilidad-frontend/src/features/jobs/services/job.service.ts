@@ -53,6 +53,24 @@ export const jobService = {
     return data;
   },
 
+  // Empresa: actualiza una oferta existente
+  async updateJob(id: string, payload: Record<string, any>): Promise<OfertaResponse> {
+    const { data } = await ofertasApi.put<OfertaResponse>(`/ofertas/${id}`, payload);
+    return data;
+  },
+
+  // Empresa/Admin: cierra definitivamente la oferta
+  async closeJob(id: string): Promise<OfertaResponse> {
+    const { data } = await ofertasApi.patch<OfertaResponse>(`/ofertas/${id}/cerrar`);
+    return data;
+  },
+
+  // Empresa/Admin: cancela la oferta
+  async cancelJob(id: string): Promise<OfertaResponse> {
+    const { data } = await ofertasApi.patch<OfertaResponse>(`/ofertas/${id}/cancelar`);
+    return data;
+  },
+
   // Admin: rechaza la oferta → pasa a RECHAZADA
   async rejectJob(id: string, motivo?: string): Promise<OfertaResponse> {
     const { data } = await ofertasApi.patch<OfertaResponse>(`/ofertas/${id}/rechazar`, null, {

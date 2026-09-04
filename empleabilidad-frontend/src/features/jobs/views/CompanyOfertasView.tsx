@@ -1,24 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Briefcase, MapPin, Users, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Briefcase, MapPin, Users, Edit, Trash2, Eye, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
 import type { OfertaResponse } from '../types/job.types';
 import type { PageResponse } from '@/shared/types';
 import { Button } from '@/shared/components/Button';
 import { CreateJobModal } from '../components/CreateJobModal';
+import { EditJobModal } from '../components/EditJobModal';
+import { ViewJobModal } from '../components/ViewJobModal';
 import toast from 'react-hot-toast';
 
 export const CompanyOfertasView: React.FC = () => {
   const { user } = useAuthStore();
   const [jobsData, setJobsData] = useState<PageResponse<OfertaResponse> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewingJob, setViewingJob] = useState<OfertaResponse | null>(null);
+  const [editingJob, setEditingJob] = useState<OfertaResponse | null>(null);
+  const [closingJob, setClosingJob] = useState<OfertaResponse | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   const fetchMyJobs = async () => {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      // By default, backend sorts by latest or we can pass sort params
+      // Por defecto el backend retorna las ofertas de la empresa
       const data = await jobService.getCompanyJobs(user.id, { size: 20 });
       setJobsData(data);
     } catch (error) {
@@ -31,6 +39,22 @@ export const CompanyOfertasView: React.FC = () => {
   useEffect(() => {
     fetchMyJobs();
   }, [user?.id]);
+
+  const handleCloseJob = async () => {
+    if (!closingJob) return;
+    setIsClosing(true);
+    try {
+      await jobService.closeJob(closingJob.id);
+      toast.success(`La oferta "${closingJob.titulo}" ha sido cerrada definitivamente.`);
+      setClosingJob(null);
+      fetchMyJobs();
+    } catch (err: any) {
+      console.error('Error al cerrar oferta:', err);
+      toast.error(err.response?.data?.message || 'Error al cerrar la oferta');
+    } finally {
+      setIsClosing(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-500">
@@ -78,28 +102,29 @@ export const CompanyOfertasView: React.FC = () => {
                       <p className="font-bold text-slate-900">{job.titulo}</p>
                       <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
                         <MapPin className="h-3 w-3" />
-                        {job.ubicacion || job.pais}
+                        {job.ubicacion || job.pais || 'Por definir'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        job.estado === 'PUBLICADA'             ? 'bg-emerald-100 text-emerald-800' :
-                        job.estado === 'PENDIENTE_APROBACION'  ? 'bg-amber-100 text-amber-800'   :
-                        job.estado === 'RECHAZADA'             ? 'bg-red-100 text-red-800'        :
-                        job.estado === 'CERRADA'               ? 'bg-slate-100 text-slate-600'    :
-                        'bg-slate-100 text-slate-800'
+                        job.estado === 'PUBLICADA'             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                        job.estado === 'PENDIENTE_APROBACION'  ? 'bg-amber-100 text-amber-800 border border-amber-200'   :
+                        job.estado === 'RECHAZADA'             ? 'bg-red-100 text-red-800 border border-red-200'        :
+                        job.estado === 'CERRADA'               ? 'bg-slate-100 text-slate-600 border border-slate-200'    :
+                        'bg-slate-100 text-slate-800 border border-slate-200'
                       }`}>
-                        {job.estado}
+                        {job.estado.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-medium">{job.modalidad.replace('_', ' ')}</td>
+                    <td className="px-6 py-4 font-medium">{job.modalidad?.replace('_', ' ')}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5 font-medium text-slate-900">
                         <Users className="h-4 w-4 text-slate-400" />
-                        {job.numeroPostulaciones}
+                        {job.numeroPostulaciones ?? 0}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
+                      {/* Botón de reenvío si fue rechazada o borrador */}
                       {(job.estado === 'BORRADOR' || job.estado === 'RECHAZADA') && (
                         <button 
                           onClick={async () => {
@@ -111,19 +136,43 @@ export const CompanyOfertasView: React.FC = () => {
                               toast.error('Error al enviar la oferta a revisión');
                             }
                           }}
-                          className="p-2 text-slate-400 hover:text-amber-600 transition-colors font-medium text-xs border rounded bg-amber-50 border-amber-200" title="Enviar a revisión">
+                          className="px-2.5 py-1 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors font-medium text-xs border border-amber-200 rounded-lg inline-flex items-center" 
+                          title="Enviar a revisión"
+                        >
                           {job.estado === 'RECHAZADA' ? 'Reenviar' : 'Enviar a revisión'}
                         </button>
                       )}
-                      <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Ver detalle">
+
+                      {/* 1. Ver detalle (Ojito) */}
+                      <button 
+                        onClick={() => setViewingJob(job)}
+                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center" 
+                        title="Ver detalle completo"
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="p-2 text-slate-400 hover:text-emerald-600 transition-colors" title="Editar">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button className="p-2 text-slate-400 hover:text-red-600 transition-colors" title="Cerrar oferta">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+
+                      {/* 2. Editar (Lápiz) */}
+                      {job.estado !== 'CERRADA' && (
+                        <button 
+                          onClick={() => setEditingJob(job)}
+                          className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center" 
+                          title="Editar oferta"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      )}
+
+                      {/* 3. Eliminar / Cerrar (Tacho) */}
+                      {job.estado !== 'CERRADA' && (
+                        <button 
+                          onClick={() => setClosingJob(job)}
+                          className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-flex items-center" 
+                          title="Cerrar oferta"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -133,7 +182,69 @@ export const CompanyOfertasView: React.FC = () => {
         </div>
       )}
 
-      {/* Modal para crear oferta */}
+      {/* Modal 1: Ver Detalle */}
+      {viewingJob && (
+        <ViewJobModal 
+          job={viewingJob} 
+          onClose={() => setViewingJob(null)} 
+          onEdit={() => {
+            const j = viewingJob;
+            setViewingJob(null);
+            setEditingJob(j);
+          }}
+        />
+      )}
+
+      {/* Modal 2: Editar Oferta */}
+      {editingJob && (
+        <EditJobModal 
+          job={editingJob} 
+          onClose={() => setEditingJob(null)} 
+          onSuccess={() => {
+            setEditingJob(null);
+            fetchMyJobs();
+          }} 
+        />
+      )}
+
+      {/* Modal 3: Confirmación Cerrar Oferta */}
+      {closingJob && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-slide-up">
+            <div className="h-12 w-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 text-center mb-2">
+              ¿Cerrar esta oferta?
+            </h3>
+            <p className="text-sm text-slate-600 text-center mb-6">
+              Estás a punto de cerrar definitivamente la vacante <br />
+              <strong className="text-slate-800">"{closingJob.titulo}"</strong>.<br />
+              Los candidatos ya no podrán postular ni será visible en la bolsa de trabajo.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={() => setClosingJob(null)}
+                disabled={isClosing}
+              >
+                Cancelar
+              </Button>
+              <button
+                type="button"
+                onClick={handleCloseJob}
+                disabled={isClosing}
+                className="px-4 py-2 bg-red-600 text-white font-medium text-sm rounded-lg hover:bg-red-700 transition-colors shadow disabled:opacity-50"
+              >
+                {isClosing ? 'Cerrando...' : 'Sí, cerrar oferta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Crear Nueva Oferta */}
       {isModalOpen && (
         <CreateJobModal 
           onClose={() => setIsModalOpen(false)} 
