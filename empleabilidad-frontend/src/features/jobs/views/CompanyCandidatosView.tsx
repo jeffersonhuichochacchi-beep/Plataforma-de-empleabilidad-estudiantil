@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Users, Search, RefreshCw, FileText, ExternalLink, 
   CheckCircle2, XCircle, Clock, Eye, Briefcase, Mail, 
-  MessageSquare, AlertCircle, ArrowUpRight
+  MessageSquare, AlertCircle, ArrowUpRight, Download, X
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
@@ -57,6 +57,7 @@ export const CompanyCandidatosView: React.FC = () => {
     newEstado: EstadoPostulacion;
   } | null>(null);
   const [comentarioCambio, setComentarioCambio] = useState('');
+  const [viewingCvPostulacion, setViewingCvPostulacion] = useState<PostulacionResponse | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -407,16 +408,27 @@ export const CompanyCandidatosView: React.FC = () => {
                       {/* CV / Documentos */}
                       <td className="py-4 px-4 whitespace-nowrap">
                         {postulacion.cvUrl ? (
-                          <a
-                            href={postulacion.cvUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200/60"
-                          >
-                            <FileText className="h-3.5 w-3.5 text-blue-600" />
-                            Ver CV
-                            <ArrowUpRight className="h-3 w-3 opacity-70" />
-                          </a>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setViewingCvPostulacion(postulacion)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200/60"
+                              title="Visualizar CV en visor interactivo"
+                            >
+                              <FileText className="h-3.5 w-3.5 text-blue-600" />
+                              Ver CV
+                              <Eye className="h-3 w-3 opacity-70" />
+                            </button>
+                            <a
+                              href={`http://localhost:8083/api/postulaciones/${postulacion.uuid}/cv`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                              title="Abrir PDF en pestaña nueva"
+                            >
+                              <ArrowUpRight className="h-3.5 w-3.5" />
+                            </a>
+                          </div>
                         ) : (
                           <span className="text-xs text-slate-400 italic">No adjuntado</span>
                         )}
@@ -555,19 +567,29 @@ export const CompanyCandidatosView: React.FC = () => {
                         <FileText className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-slate-800">Currículum del Candidato</div>
-                        <div className="text-xs text-slate-500 truncate max-w-xs">{selectedPostulacion.cvUrl}</div>
+                        <div className="text-sm font-semibold text-slate-800">Currículum Vitae (PDF)</div>
+                        <div className="text-xs text-slate-500 truncate max-w-xs">{selectedPostulacion.candidatoNombre || 'Documento adjunto'}</div>
                       </div>
                     </div>
-                    <a
-                      href={selectedPostulacion.cvUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
-                    >
-                      Abrir CV
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setViewingCvPostulacion(selectedPostulacion)}
+                        className="px-3 py-1.5 bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Vista Previa
+                      </button>
+                      <a
+                        href={`http://localhost:8083/api/postulaciones/${selectedPostulacion.uuid}/cv`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Descargar PDF
+                      </a>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-400 italic">
@@ -673,6 +695,70 @@ export const CompanyCandidatosView: React.FC = () => {
                   Confirmar Cambio
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Visor Interactivo de CV (PDF) */}
+      {viewingCvPostulacion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    {viewingCvPostulacion.candidatoNombre || 'Currículum del Candidato'}
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      PDF
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 truncate max-w-md">
+                    Oferta: <span className="font-medium text-slate-700">{viewingCvPostulacion.ofertaTitulo}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href={`http://localhost:8083/api/postulaciones/${viewingCvPostulacion.uuid}/cv`}
+                  download={`CV_${(viewingCvPostulacion.candidatoNombre || 'Candidato').replace(/\s+/g, '_')}.pdf`}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Descargar PDF
+                </a>
+                <a
+                  href={`http://localhost:8083/api/postulaciones/${viewingCvPostulacion.uuid}/cv`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Pestaña Nueva
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setViewingCvPostulacion(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors ml-1"
+                  title="Cerrar visor"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body - PDF Iframe Viewer */}
+            <div className="flex-1 bg-slate-100 p-2 overflow-hidden">
+              <iframe
+                src={`http://localhost:8083/api/postulaciones/${viewingCvPostulacion.uuid}/cv`}
+                className="w-full h-full rounded-xl border border-slate-200/80 bg-white shadow-inner"
+                title={`CV de ${viewingCvPostulacion.candidatoNombre}`}
+              />
             </div>
           </div>
         </div>

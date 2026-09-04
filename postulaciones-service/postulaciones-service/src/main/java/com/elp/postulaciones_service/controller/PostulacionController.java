@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -143,5 +145,21 @@ public class PostulacionController {
         }
         Page<PostulacionResponse> response = postulacionService.listarPostulacionesPorEmpresa(targetEmpresaId, ofertaId, estado, pageable);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{uuid}/cv")
+    @Operation(summary = "Visualizar o descargar CV en PDF", description = "Descarga los bytes del CV desde Cloudinary y los entrega como application/pdf con nombre formateado")
+    public ResponseEntity<byte[]> verCv(@PathVariable UUID uuid) {
+        byte[] pdfBytes = postulacionService.descargarCv(uuid);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(
+            ContentDisposition.inline()
+                .filename("CV_Candidato_" + uuid.toString().substring(0, 8) + ".pdf")
+                .build()
+        );
+        
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 }

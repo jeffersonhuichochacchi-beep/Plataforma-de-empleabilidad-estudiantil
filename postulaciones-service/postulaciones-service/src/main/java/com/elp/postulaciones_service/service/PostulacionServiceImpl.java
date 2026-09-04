@@ -28,6 +28,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 
 @Service
@@ -47,6 +52,11 @@ public class PostulacionServiceImpl implements PostulacionService {
     // Servicios nuevos para CV
     private final CloudinaryService cloudinaryService;
     private final GeminiAiService geminiAiService;
+
+    private final OkHttpClient httpClient = new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build();
 
     @Override
     @Transactional
@@ -332,5 +342,32 @@ public class PostulacionServiceImpl implements PostulacionService {
                 .descripcion(descripcion)
                 .build();
         auditoriaRepository.save(auditoria);
+    }
+
+    @Override
+    public byte[] descargarCv(UUID uuid) {
+        Postulacion postulacion = postulacionRepository.findByUuid(uuid)
+                .orElseThrow(() -> new ResourceNotFoundException("Postulación no encontrada con UUID: " + uuid));
+
+        if (postulacion.getCvUrl() == null || postulacion.getCvUrl().isBlank()) {
+            throw new ResourceNotFoundException("Esta postulación no tiene un archivo CV adjunto");
+        }
+
+        try {
+            log.info("Descargando archivo CV desde Cloudinary: {}", postulacion.getCvUrl());
+            Request request = new Request.Builder()
+                    .url(postulacion.getCvUrl())
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    throw new IOException("Error HTTP " + response.code() + " al descargar archivo desde Cloudinary");
+                }
+                return response.body().bytes();
+            }
+        } catch (Exception e) {
+            log.error("Error al obtener CV desde Cloudinary: {}", e.getMessage(), e);
+            throw new RuntimeException("No se pudo obtener el archivo CV: " + e.getMessage());
+        }
     }
 }

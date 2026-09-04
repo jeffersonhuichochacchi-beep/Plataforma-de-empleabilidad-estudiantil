@@ -54,14 +54,23 @@ public class CloudinaryService {
                 );
             }
             
+            // Preparar nombre identificador limpio
+            String originalFilename = file.getOriginalFilename();
+            String baseName = "cv";
+            if (originalFilename != null && !originalFilename.isBlank()) {
+                int lastDot = originalFilename.lastIndexOf(".");
+                baseName = (lastDot > 0) ? originalFilename.substring(0, lastDot) : originalFilename;
+            }
+            String cleanBaseName = baseName.replaceAll("[^a-zA-Z0-9_-]", "_");
+            String publicId = cleanBaseName + "_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+
             // Subir archivo a Cloudinary en la carpeta 'cvs_postulaciones'
             Map<?, ?> uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),
                     ObjectUtils.asMap(
-                            "resource_type", "raw",  // 'raw' para archivos no-imagen
+                            "resource_type", "raw",
                             "folder", "cvs_postulaciones",
-                            "use_filename", true,
-                            "unique_filename", true
+                            "public_id", publicId
                     )
             );
             
