@@ -20,4 +20,8 @@ public class PostulacionResponse {
     private String observaciones;
     private Timestamp fechaActualizacion;
     private Timestamp fechaCierre;
+    private String candidatoNombre;
+    private String candidatoEmail;
+    private String candidatoFoto;
+    private String ofertaTitulo;
 }

@@ -7,6 +7,7 @@ import { ProtectedRoute } from './core/ProtectedRoute';
 
 // Layouts
 import { PublicLayout } from './app/layouts/PublicLayout';
+import { SharedLayout } from './app/layouts/SharedLayout';
 import { CandidateLayout } from './app/layouts/CandidateLayout';
 import { CompanyLayout } from './app/layouts/CompanyLayout';
 import { AdminLayout } from './app/layouts/AdminLayout';
@@ -14,6 +15,7 @@ import { AdminLayout } from './app/layouts/AdminLayout';
 import { EmpleosView } from './features/jobs/views/EmpleosView';
 import { JobDetailView } from './features/jobs/views/JobDetailView';
 import { CompanyOfertasView } from './features/jobs/views/CompanyOfertasView';
+import { CompanyCandidatosView } from './features/jobs/views/CompanyCandidatosView';
 import { CandidateSearchView } from './features/jobs/views/CandidateSearchView';
 import { ProfileOnboardingView } from './features/profile/views/ProfileOnboardingView';
 import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
@@ -75,7 +77,6 @@ const CandidatoPostulaciones = () => <div className="bg-white p-6 rounded-xl sha
 const CandidatoEntrevistas = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Mis Entrevistas</h1><p className="text-slate-500 mt-2">Organiza y prepárate para tus próximas citas.</p></div>;
 
 // --- VISTAS PROTEGIDAS (EMPRESA) ---
-const EmpresaCandidatos = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Gestión de Candidatos</h1><p className="text-slate-500 mt-2">Filtra y revisa los perfiles que han aplicado a tus ofertas.</p></div>;
 const EmpresaEvaluaciones = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Evaluaciones Técnicas</h1><p className="text-slate-500 mt-2">Revisa las pruebas enviadas a los postulantes.</p></div>;
 
 function App() {
@@ -95,12 +96,16 @@ function App() {
       />
       <BrowserRouter>
         <Routes>
-          {/* --- RAMA VISITANTE --- */}
+          {/* --- RAMA PÚBLICA (Solo home y empresas) --- */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<Inicio />} />
+            <Route path="/empresas" element={<EmpresasPublicas />} />
+          </Route>
+
+          {/* --- RAMA COMPARTIDA (Empleos - detecta si hay sesión) --- */}
+          <Route element={<SharedLayout />}>
             <Route path="/empleos" element={<EmpleosView />} />
             <Route path="/empleos/:id" element={<JobDetailView />} />
-            <Route path="/empresas" element={<EmpresasPublicas />} />
           </Route>
 
           {/* --- RAMA LOGIN --- */}
@@ -147,7 +152,7 @@ function App() {
             <Route path="/empresa" element={<CompanyLayout />}>
               <Route index element={<Navigate to="ofertas" replace />} />
               <Route path="ofertas" element={<CompanyOfertasView />} />
-              <Route path="candidatos" element={<EmpresaCandidatos />} />
+              <Route path="candidatos" element={<CompanyCandidatosView />} />
               <Route path="evaluaciones" element={<EmpresaEvaluaciones />} />
               <Route path="perfil" element={<ProfileOnboardingView />} />
             </Route>

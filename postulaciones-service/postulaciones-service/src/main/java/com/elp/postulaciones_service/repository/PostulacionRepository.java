@@ -24,4 +24,10 @@ public interface PostulacionRepository extends JpaRepository<Postulacion, UUID> 
     Page<Postulacion> findByOfertaIdAndEmpresaId(UUID ofertaId, UUID empresaId, Pageable pageable);
     
     Page<Postulacion> findByOfertaIdAndEmpresaIdAndEstado(UUID ofertaId, UUID empresaId, EstadoPostulacion estado, Pageable pageable);
+
+    Page<Postulacion> findByEmpresaId(UUID empresaId, Pageable pageable);
+    
+    Page<Postulacion> findByEmpresaIdAndEstado(UUID empresaId, EstadoPostulacion estado, Pageable pageable);
+
+    Page<Postulacion> findByEstado(EstadoPostulacion estado, Pageable pageable);
 }

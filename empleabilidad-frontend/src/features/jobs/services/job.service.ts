@@ -1,6 +1,6 @@
 import { ofertasApi, postulacionesApi } from '@/core/api';
 import type { PageResponse } from '@/shared/types';
-import type { OfertaResponse } from '../types/job.types';
+import type { OfertaResponse, EstadoPostulacion, PostulacionResponse } from '../types/job.types';
 
 export const jobService = {
   async getPublicJobs(params?: Record<string, any>): Promise<PageResponse<OfertaResponse>> {
@@ -87,5 +87,38 @@ export const jobService = {
       cvUrl: payload.cvUrl || '',
     });
     return data;
-  }
+  },
+
+  // Empresa: Obtiene todas las postulaciones recibidas
+  async getCompanyApplications(params?: {
+    empresaId?: string;
+    ofertaId?: string;
+    estado?: EstadoPostulacion;
+    page?: number;
+    size?: number;
+  }): Promise<PageResponse<PostulacionResponse>> {
+    const { data } = await postulacionesApi.get<PageResponse<PostulacionResponse>>('/postulaciones/empresa', {
+      params,
+    });
+    return data;
+  },
+
+  // Empresa/Admin: Actualiza el estado de la postulación
+  async updateApplicationStatus(
+    uuid: string,
+    nuevoEstado: EstadoPostulacion,
+    comentario?: string
+  ): Promise<PostulacionResponse> {
+    const { data } = await postulacionesApi.put<PostulacionResponse>(
+      `/postulaciones/${uuid}/estado`,
+      null,
+      {
+        params: {
+          nuevoEstado,
+          ...(comentario ? { comentario } : {}),
+        },
+      }
+    );
+    return data;
+  },
 };

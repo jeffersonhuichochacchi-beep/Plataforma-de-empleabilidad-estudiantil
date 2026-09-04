@@ -54,7 +54,7 @@ public class PostulacionServiceImpl implements PostulacionService {
 
         // 2. Validar oferta
         OfertaResumenDTO oferta = ofertasClient.validarOferta(request.getOfertaId(), jwt);
-        if (!Boolean.TRUE.equals(oferta.getAceptaPostulaciones()) || !"ACTIVA".equals(oferta.getEstado())) {
+        if (!Boolean.TRUE.equals(oferta.getAceptaPostulaciones()) || (!"ACTIVA".equals(oferta.getEstado()) && !"PUBLICADA".equals(oferta.getEstado()))) {
             throw new BusinessException("La oferta no acepta postulaciones actualmente.");
         }
         if (!oferta.getEmpresaId().equals(request.getEmpresaId())) {
@@ -136,7 +136,8 @@ public class PostulacionServiceImpl implements PostulacionService {
         } else {
             postulaciones = postulacionRepository.findByCandidatoId(candidatoId, pageable);
         }
-        return postulaciones.map(postulacionMapper::toResponse);
+        String jwt = SecurityUtils.getJwtToken();
+        return postulaciones.map(p -> enriquecerPostulacion(p, jwt));
     }
 
     @Override
@@ -148,7 +149,67 @@ public class PostulacionServiceImpl implements PostulacionService {
         } else {
             postulaciones = postulacionRepository.findByOfertaIdAndEmpresaId(ofertaId, empresaIdLogueada, pageable);
         }
-        return postulaciones.map(postulacionMapper::toResponse);
+        String jwt = SecurityUtils.getJwtToken();
+        return postulaciones.map(p -> enriquecerPostulacion(p, jwt));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostulacionResponse> listarPostulacionesPorEmpresa(UUID empresaIdLogueada, UUID ofertaId, EstadoPostulacion estado, Pageable pageable) {
+        Page<Postulacion> postulaciones;
+        if (ofertaId != null) {
+            if (empresaIdLogueada != null) {
+                if (estado != null) {
+                    postulaciones = postulacionRepository.findByOfertaIdAndEmpresaIdAndEstado(ofertaId, empresaIdLogueada, estado, pageable);
+                } else {
+                    postulaciones = postulacionRepository.findByOfertaIdAndEmpresaId(ofertaId, empresaIdLogueada, pageable);
+                }
+            } else {
+                if (estado != null) {
+                    postulaciones = postulacionRepository.findByEstado(estado, pageable);
+                } else {
+                    postulaciones = postulacionRepository.findAll(pageable);
+                }
+            }
+        } else if (empresaIdLogueada != null) {
+            if (estado != null) {
+                postulaciones = postulacionRepository.findByEmpresaIdAndEstado(empresaIdLogueada, estado, pageable);
+            } else {
+                postulaciones = postulacionRepository.findByEmpresaId(empresaIdLogueada, pageable);
+            }
+        } else {
+            if (estado != null) {
+                postulaciones = postulacionRepository.findByEstado(estado, pageable);
+            } else {
+                postulaciones = postulacionRepository.findAll(pageable);
+            }
+        }
+        String jwt = SecurityUtils.getJwtToken();
+        return postulaciones.map(p -> enriquecerPostulacion(p, jwt));
+    }
+
+    private PostulacionResponse enriquecerPostulacion(Postulacion p, String jwt) {
+        PostulacionResponse res = postulacionMapper.toResponse(p);
+        if (res == null) return null;
+        try {
+            if (jwt != null && p.getCandidatoId() != null) {
+                com.elp.postulaciones_service.dto.externo.UsuarioResumenDTO u = usuariosClient.obtenerResumenCandidato(p.getCandidatoId(), jwt);
+                if (u != null) {
+                    res.setCandidatoNombre(u.getNombreCompleto());
+                    res.setCandidatoEmail(u.getEmail());
+                    res.setCandidatoFoto(u.getFotoPerfil());
+                }
+            }
+        } catch (Exception ignored) {}
+        try {
+            if (jwt != null && p.getOfertaId() != null) {
+                OfertaResumenDTO o = ofertasClient.validarOferta(p.getOfertaId(), jwt);
+                if (o != null) {
+                    res.setOfertaTitulo(o.getTitulo());
+                }
+            }
+        } catch (Exception ignored) {}
+        return res;
     }
 
     private Postulacion buscarPorUuid(UUID uuid) {

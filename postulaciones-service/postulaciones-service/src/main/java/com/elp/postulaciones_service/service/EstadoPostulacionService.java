@@ -16,12 +16,28 @@ public class EstadoPostulacionService {
 
     public EstadoPostulacionService() {
         // Inicializar las transiciones permitidas segun las reglas de negocio
-        transicionesValidas.put(EstadoPostulacion.ENVIADA, Arrays.asList(EstadoPostulacion.RECIBIDA, EstadoPostulacion.RETIRADA));
-        transicionesValidas.put(EstadoPostulacion.RECIBIDA, Arrays.asList(EstadoPostulacion.EN_REVISION));
-        transicionesValidas.put(EstadoPostulacion.EN_REVISION, Arrays.asList(EstadoPostulacion.PRESELECCIONADA, EstadoPostulacion.RECHAZADA));
-        transicionesValidas.put(EstadoPostulacion.PRESELECCIONADA, Arrays.asList(EstadoPostulacion.ENTREVISTA, EstadoPostulacion.RECHAZADA));
-        transicionesValidas.put(EstadoPostulacion.ENTREVISTA, Arrays.asList(EstadoPostulacion.EVALUACION, EstadoPostulacion.RECHAZADA));
-        transicionesValidas.put(EstadoPostulacion.EVALUACION, Arrays.asList(EstadoPostulacion.SELECCIONADA, EstadoPostulacion.RECHAZADA));
+        transicionesValidas.put(EstadoPostulacion.ENVIADA, Arrays.asList(
+            EstadoPostulacion.RECIBIDA, EstadoPostulacion.EN_REVISION, EstadoPostulacion.PRESELECCIONADA, 
+            EstadoPostulacion.ENTREVISTA, EstadoPostulacion.RECHAZADA, EstadoPostulacion.RETIRADA
+        ));
+        transicionesValidas.put(EstadoPostulacion.RECIBIDA, Arrays.asList(
+            EstadoPostulacion.EN_REVISION, EstadoPostulacion.PRESELECCIONADA, EstadoPostulacion.ENTREVISTA, 
+            EstadoPostulacion.RECHAZADA, EstadoPostulacion.RETIRADA
+        ));
+        transicionesValidas.put(EstadoPostulacion.EN_REVISION, Arrays.asList(
+            EstadoPostulacion.PRESELECCIONADA, EstadoPostulacion.ENTREVISTA, EstadoPostulacion.EVALUACION, 
+            EstadoPostulacion.RECHAZADA
+        ));
+        transicionesValidas.put(EstadoPostulacion.PRESELECCIONADA, Arrays.asList(
+            EstadoPostulacion.ENTREVISTA, EstadoPostulacion.EVALUACION, EstadoPostulacion.SELECCIONADA, 
+            EstadoPostulacion.RECHAZADA
+        ));
+        transicionesValidas.put(EstadoPostulacion.ENTREVISTA, Arrays.asList(
+            EstadoPostulacion.EVALUACION, EstadoPostulacion.SELECCIONADA, EstadoPostulacion.RECHAZADA
+        ));
+        transicionesValidas.put(EstadoPostulacion.EVALUACION, Arrays.asList(
+            EstadoPostulacion.SELECCIONADA, EstadoPostulacion.RECHAZADA
+        ));
         transicionesValidas.put(EstadoPostulacion.SELECCIONADA, Arrays.asList(EstadoPostulacion.CERRADA));
         transicionesValidas.put(EstadoPostulacion.RECHAZADA, Arrays.asList(EstadoPostulacion.CERRADA));
         transicionesValidas.put(EstadoPostulacion.RETIRADA, Arrays.asList(EstadoPostulacion.CERRADA));

@@ -15,4 +15,5 @@ public interface PostulacionService {
     PostulacionResponse retirarPostulacion(UUID uuid, UUID candidatoId, String motivo);
     Page<PostulacionResponse> listarMisPostulaciones(UUID candidatoId, EstadoPostulacion estado, Pageable pageable);
     Page<PostulacionResponse> listarPostulacionesPorOferta(UUID ofertaId, UUID empresaIdLogueada, EstadoPostulacion estado, Pageable pageable);
+    Page<PostulacionResponse> listarPostulacionesPorEmpresa(UUID empresaIdLogueada, UUID ofertaId, EstadoPostulacion estado, Pageable pageable);
 }

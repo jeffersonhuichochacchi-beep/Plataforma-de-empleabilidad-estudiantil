@@ -43,3 +43,33 @@ export interface OfertaResponse {
   numeroPostulaciones: number;
   requisitos: RequisitoOfertaResponse[];
 }
+
+export type EstadoPostulacion = 
+  | 'ENVIADA' 
+  | 'RECIBIDA' 
+  | 'EN_REVISION' 
+  | 'PRESELECCIONADA' 
+  | 'ENTREVISTA' 
+  | 'EVALUACION' 
+  | 'SELECCIONADA' 
+  | 'RECHAZADA' 
+  | 'RETIRADA' 
+  | 'CANCELADA' 
+  | 'CERRADA';
+
+export interface PostulacionResponse {
+  id: string;
+  uuid: string;
+  ofertaId: string;
+  candidatoId: string;
+  empresaId: string;
+  cartaPresentacion?: string;
+  cvUrl?: string;
+  estado: EstadoPostulacion;
+  fechaPostulacion: string;
+  fechaActualizacion?: string;
+  candidatoNombre?: string;
+  candidatoEmail?: string;
+  candidatoFoto?: string;
+  ofertaTitulo?: string;
+}

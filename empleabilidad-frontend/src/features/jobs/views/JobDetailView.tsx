@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Banknote, Briefcase, Building2, Clock, MapPin, X } from 'lucide-react';
+import { ArrowLeft, Banknote, Briefcase, Building2, Clock, MapPin, X, Upload } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { jobService } from '../services/job.service';
 import type { OfertaResponse } from '../types/job.types';
 import { Button } from '@/shared/components/Button';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import toast from 'react-hot-toast';
 
 const formatSalary = (min?: number, max?: number, currency: string = 'USD') => {
   if (!min && !max) return 'Salario no especificado';
@@ -27,19 +28,21 @@ const formatDate = (value?: string) => {
 export const JobDetailView: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [job, setJob] = useState<OfertaResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyError, setApplyError] = useState('');
+  const [hasApplied, setHasApplied] = useState(false);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [cvUrl, setCvUrl] = useState('');
+  const [cvFile, setCvFile] = useState<File | null>(null);
   const [cartaPresentacion, setCartaPresentacion] = useState('');
 
   const handleApply = () => {
     if (!isAuthenticated) {
-      navigate('/auth/register', {
+      toast('Inicia sesión o regístrate para postular a esta oferta', { icon: 'ℹ️' });
+      navigate('/auth/login', {
         state: {
           from: 'apply',
           returnTo: `/empleos/${id}`,
@@ -50,37 +53,46 @@ export const JobDetailView: React.FC = () => {
       return;
     }
 
-    if (user?.rol && !['ESTUDIANTE', 'PROFESIONAL'].includes(user.rol)) {
-      setApplyError('Solo los profesionales pueden postular a una oferta.');
-      return;
-    }
-
     setApplyError('');
     setIsApplyOpen(true);
   };
 
   const handleSubmitApplication = async () => {
     if (!job) return;
+    
+    if (!cvFile) {
+      setApplyError('Por favor, selecciona tu CV antes de postular.');
+      return;
+    }
+
     setApplyLoading(true);
     setApplyError('');
 
     try {
+      // TODO: Implementar la lógica de backend para subir el archivo
+      // Por ahora simulamos el comportamiento anterior
       await jobService.applyToJob(job.id, job.empresaId, {
         cartaPresentacion: cartaPresentacion.trim(),
-        cvUrl: cvUrl.trim(),
+        cvUrl: '', // Vacío por ahora hasta implementar backend
       });
 
+      toast.success('¡Tu postulación fue enviada correctamente!');
       setNotice({
         type: 'success',
-        message: 'Tu postulación fue enviada correctamente.',
+        message: 'Tu postulación fue enviada correctamente. La empresa revisará tu perfil.',
       });
+      setHasApplied(true);
       setIsApplyOpen(false);
-      setCvUrl('');
+      setCvFile(null);
       setCartaPresentacion('');
     } catch (error: any) {
       const msg = error.response?.data?.message || 'No se pudo enviar la postulación.';
       setApplyError(msg);
+      toast.error(msg);
       setNotice({ type: 'error', message: msg });
+      if (msg.toLowerCase().includes('ya') || msg.toLowerCase().includes('duplicad')) {
+        setHasApplied(true);
+      }
     } finally {
       setApplyLoading(false);
     }
@@ -165,7 +177,10 @@ export const JobDetailView: React.FC = () => {
         )}
 
         <div className="mb-6">
-          <Link to="/empleos" className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+          <Link 
+            to={isAuthenticated ? "/candidato/buscar" : "/empleos"} 
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+          >
             <ArrowLeft className="h-4 w-4" />
             Volver a empleos
           </Link>
@@ -237,8 +252,17 @@ export const JobDetailView: React.FC = () => {
                 </ul>
               </div>
 
-              <Button className="w-full justify-center" onClick={handleApply}>
-                {isAuthenticated ? 'Postular ahora' : 'Registrarme para postular'}
+              <Button 
+                className="w-full justify-center" 
+                onClick={handleApply}
+                disabled={hasApplied}
+                variant={hasApplied ? 'outline' : 'primary'}
+              >
+                {hasApplied 
+                  ? '✓ Postulación enviada' 
+                  : isAuthenticated 
+                    ? 'Postular ahora' 
+                    : 'Iniciar sesión para postular'}
               </Button>
             </aside>
           </div>
@@ -262,13 +286,29 @@ export const JobDetailView: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">URL del CV</label>
-                <input
-                  value={cvUrl}
-                  onChange={(e) => setCvUrl(e.target.value)}
-                  placeholder="https://drive.google.com/..."
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Cargar CV</label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => setCvFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="cv-upload"
+                  />
+                  <label
+                    htmlFor="cv-upload"
+                    className="flex items-center justify-center gap-2 w-full rounded-md border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                  >
+                    <Upload className="h-5 w-5 text-slate-400" />
+                    <span className="text-slate-600">
+                      {cvFile ? (
+                        <span className="font-medium text-blue-600">{cvFile.name}</span>
+                      ) : (
+                        'Haz clic para seleccionar tu CV (PDF, DOC, DOCX)'
+                      )}
+                    </span>
+                  </label>
+                </div>
               </div>
 
               <div>

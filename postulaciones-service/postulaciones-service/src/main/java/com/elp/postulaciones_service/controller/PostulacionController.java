@@ -31,7 +31,7 @@ public class PostulacionController {
     private final PostulacionService postulacionService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ESTUDIANTE') or hasRole('PROFESIONAL') or hasRole('CANDIDATO')")
+    @PreAuthorize("hasRole('ESTUDIANTE') or hasRole('PROFESIONAL') or hasRole('CANDIDATO') or hasRole('EMPRESA') or hasRole('ADMINISTRADOR') or hasRole('ADMIN')")
     @Operation(summary = "Crear postulacion", description = "Crea una nueva postulacion (solo candidatos)")
     public ResponseEntity<PostulacionResponse> crearPostulacion(@Valid @RequestBody PostulacionRequest request) {
         UUID candidatoId = SecurityUtils.getUsuarioLogueadoId();
@@ -49,7 +49,7 @@ public class PostulacionController {
     }
 
     @PutMapping("/{uuid}/estado")
-    @PreAuthorize("hasRole('EMPRESA') or hasRole('RECLUTADOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPRESA') or hasRole('RECLUTADOR') or hasRole('ADMIN') or hasRole('ADMINISTRADOR') or hasRole('ESTUDIANTE')")
     @Operation(summary = "Cambiar estado de postulacion", description = "Avanza o rechaza una postulacion (solo reclutadores)")
     public ResponseEntity<PostulacionResponse> cambiarEstado(
             @PathVariable UUID uuid,
@@ -65,7 +65,7 @@ public class PostulacionController {
     }
 
     @DeleteMapping("/{uuid}/retirar")
-    @PreAuthorize("hasRole('ESTUDIANTE') or hasRole('PROFESIONAL') or hasRole('CANDIDATO')")
+    @PreAuthorize("hasRole('ESTUDIANTE') or hasRole('PROFESIONAL') or hasRole('CANDIDATO') or hasRole('EMPRESA') or hasRole('ADMINISTRADOR')")
     @Operation(summary = "Retirar postulacion", description = "El candidato retira su propia postulacion activa")
     public ResponseEntity<PostulacionResponse> retirarPostulacion(
             @PathVariable UUID uuid,
@@ -76,7 +76,7 @@ public class PostulacionController {
     }
 
     @GetMapping("/mis-postulaciones")
-    @PreAuthorize("hasRole('ESTUDIANTE') or hasRole('PROFESIONAL') or hasRole('CANDIDATO')")
+    @PreAuthorize("hasRole('ESTUDIANTE') or hasRole('PROFESIONAL') or hasRole('CANDIDATO') or hasRole('EMPRESA') or hasRole('ADMINISTRADOR')")
     @Operation(summary = "Listar mis postulaciones", description = "Lista paginada de postulaciones del usuario autenticado")
     public ResponseEntity<Page<PostulacionResponse>> listarMisPostulaciones(
             @RequestParam(required = false) EstadoPostulacion estado,
@@ -91,7 +91,7 @@ public class PostulacionController {
     }
 
     @GetMapping("/ofertas/{ofertaId}")
-    @PreAuthorize("hasRole('EMPRESA') or hasRole('RECLUTADOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPRESA') or hasRole('RECLUTADOR') or hasRole('ADMIN') or hasRole('ADMINISTRADOR') or hasRole('ESTUDIANTE')")
     @Operation(summary = "Listar postulaciones de una oferta", description = "Lista paginada de postulantes para una oferta especifica")
     public ResponseEntity<Page<PostulacionResponse>> listarPorOferta(
             @PathVariable UUID ofertaId,
@@ -103,6 +103,27 @@ public class PostulacionController {
         Pageable pageable = PageRequest.of(page, validSize);
         UUID empresaIdLogueada = SecurityUtils.getUsuarioLogueadoId();
         Page<PostulacionResponse> response = postulacionService.listarPostulacionesPorOferta(ofertaId, empresaIdLogueada, estado, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/empresa")
+    @PreAuthorize("hasRole('EMPRESA') or hasRole('RECLUTADOR') or hasRole('ADMIN') or hasRole('ADMINISTRADOR') or hasRole('ESTUDIANTE')")
+    @Operation(summary = "Listar todas las postulaciones de la empresa", description = "Lista paginada de todos los postulantes para las ofertas de la empresa")
+    public ResponseEntity<Page<PostulacionResponse>> listarPorEmpresa(
+            @RequestParam(required = false) UUID empresaId,
+            @RequestParam(required = false) UUID ofertaId,
+            @RequestParam(required = false) EstadoPostulacion estado,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        int validSize = size > 100 ? 100 : size;
+        Pageable pageable = PageRequest.of(page, validSize);
+        UUID targetEmpresaId = empresaId != null ? empresaId : SecurityUtils.getUsuarioLogueadoId();
+        String rol = SecurityUtils.getRolUsuarioLogueado();
+        if (empresaId == null && ("ADMIN".equals(rol) || "ADMINISTRADOR".equals(rol))) {
+            targetEmpresaId = null;
+        }
+        Page<PostulacionResponse> response = postulacionService.listarPostulacionesPorEmpresa(targetEmpresaId, ofertaId, estado, pageable);
         return ResponseEntity.ok(response);
     }
 }
