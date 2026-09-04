@@ -133,7 +133,8 @@ export const CompanyOfertasView: React.FC = () => {
                               toast.success('Oferta enviada a revisión. El administrador la revisará pronto.');
                               fetchMyJobs();
                             } catch (e: any) {
-                              toast.error('Error al enviar la oferta a revisión');
+                              const msg = e.response?.data?.message || e.response?.data?.error || 'Error al enviar la oferta a revisión';
+                              toast.error(msg);
                             }
                           }}
                           className="px-2.5 py-1 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors font-medium text-xs border border-amber-200 rounded-lg inline-flex items-center" 
