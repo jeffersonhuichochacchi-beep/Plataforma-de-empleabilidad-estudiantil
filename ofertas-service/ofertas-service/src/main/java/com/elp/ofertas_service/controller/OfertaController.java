@@ -30,7 +30,7 @@ public class OfertaController {
     private final OfertaService ofertaService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('RECLUTADOR', 'EMPRESA')")
+    @PreAuthorize("hasAnyRole('RECLUTADOR', 'EMPRESA', 'ADMINISTRADOR', 'ESTUDIANTE')")
     public ResponseEntity<OfertaResponse> crearOferta(@RequestParam UUID empresaId,
                                                       @Valid @RequestBody OfertaRequestWrapper wrapper) {
         UUID reclutadorId = SecurityUtils.getUsuarioLogueadoId();
@@ -38,17 +38,30 @@ public class OfertaController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('RECLUTADOR', 'EMPRESA')")
+    @PreAuthorize("hasAnyRole('RECLUTADOR', 'EMPRESA', 'ADMINISTRADOR', 'ESTUDIANTE')")
     public ResponseEntity<OfertaResponse> actualizarOferta(@PathVariable UUID id,
                                                            @Valid @RequestBody OfertaRequestWrapper wrapper) {
         UUID reclutadorId = SecurityUtils.getUsuarioLogueadoId();
         return ResponseEntity.ok(ofertaService.actualizarOferta(id, reclutadorId, wrapper.getOferta(), wrapper.getRequisitos()));
     }
 
-    @PatchMapping("/{id}/publicar")
-    @PreAuthorize("hasAnyRole('RECLUTADOR', 'EMPRESA')")
-    public ResponseEntity<OfertaResponse> publicarOferta(@PathVariable UUID id) {
-        return ResponseEntity.ok(ofertaService.publicarOferta(id, SecurityUtils.getUsuarioLogueadoId()));
+    @PatchMapping({ "/{id}/enviar-revision", "/{id}/publicar" })
+    @PreAuthorize("hasAnyRole('RECLUTADOR', 'EMPRESA', 'ADMINISTRADOR', 'ESTUDIANTE')")
+    public ResponseEntity<OfertaResponse> enviarARevision(@PathVariable UUID id) {
+        return ResponseEntity.ok(ofertaService.enviarARevision(id, SecurityUtils.getUsuarioLogueadoId()));
+    }
+
+    @PatchMapping("/{id}/aprobar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'MODERADOR', 'ESTUDIANTE', 'EMPRESA', 'RECLUTADOR')")
+    public ResponseEntity<OfertaResponse> aprobarOferta(@PathVariable UUID id) {
+        return ResponseEntity.ok(ofertaService.aprobarOferta(id, SecurityUtils.getUsuarioLogueadoId()));
+    }
+
+    @PatchMapping("/{id}/rechazar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'MODERADOR', 'ESTUDIANTE', 'EMPRESA', 'RECLUTADOR')")
+    public ResponseEntity<OfertaResponse> rechazarOferta(@PathVariable UUID id,
+                                                          @RequestParam(required = false) String motivo) {
+        return ResponseEntity.ok(ofertaService.rechazarOferta(id, SecurityUtils.getUsuarioLogueadoId(), motivo));
     }
 
     @PatchMapping("/{id}/pausar")

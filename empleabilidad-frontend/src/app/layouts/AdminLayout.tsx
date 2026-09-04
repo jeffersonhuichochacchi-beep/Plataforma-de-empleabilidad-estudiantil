@@ -21,6 +21,14 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../features/auth/store/useAuthStore';
 
+interface MenuItem {
+  icon: any;
+  label: string;
+  path: string;
+  badge?: string;
+  hasSubmenu?: boolean;
+}
+
 export const AdminLayout = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
@@ -32,7 +40,7 @@ export const AdminLayout = () => {
     navigate('/auth/login');
   };
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
     { icon: Users, label: 'Gestión de Usuarios', path: '/admin/usuarios', hasSubmenu: true },
     { icon: ShoppingBag, label: 'Gestión de Ofertas', path: '/admin/ofertas', hasSubmenu: true },
@@ -40,7 +48,7 @@ export const AdminLayout = () => {
     { icon: BarChart3, label: 'Estadísticas', path: '/admin/estadisticas' },
   ];
 
-  const appsPages = [
+  const appsPages: MenuItem[] = [
     { icon: Users, label: 'Usuarios', path: '/admin/usuarios/listado' },
     { icon: Shield, label: 'Candidatos', path: '/admin/usuarios/candidatos' },
     { icon: Store, label: 'Empresas', path: '/admin/usuarios/empresas' },
@@ -188,7 +196,7 @@ export const AdminLayout = () => {
               title={user ? 'Logout' : 'Login'}
             >
               <img
-                src={user?.avatar || "https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff"}
+                src={(user as any)?.avatar || "https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff"}
                 alt="User"
                 className="w-8 h-8 rounded-full"
               />

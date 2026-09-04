@@ -142,15 +142,36 @@ public class OfertaServiceImpl implements OfertaService {
 
     @Override
     @Transactional
-    public OfertaResponse publicarOferta(UUID id, UUID reclutadorId) {
+    public OfertaResponse enviarARevision(UUID id, UUID reclutadorId) {
         Oferta oferta = obtenerYValidarAccesoPropiedad(id, reclutadorId);
-        
+
         if (oferta.getFechaVencimiento() == null || oferta.getFechaVencimiento().isBefore(OffsetDateTime.now())) {
-            throw new BusinessException("No se puede publicar una oferta sin fecha de vencimiento valida");
+            throw new BusinessException("No se puede enviar a revision una oferta sin fecha de vencimiento valida");
         }
 
+        estadoOfertaService.validarTransicion(oferta.getEstado(), EstadoOferta.PENDIENTE_APROBACION);
+
+        oferta.setEstado(EstadoOferta.PENDIENTE_APROBACION);
+        oferta = ofertaRepository.save(oferta);
+        registrarAuditoria(reclutadorId, oferta.getId(), "OFERTA_ENVIADA_A_REVISION",
+                "Oferta enviada a revision del administrador");
+        return ofertaMapper.toResponse(oferta, requisitoRepository.findByOfertaId(id));
+    }
+
+    @Override
+    @Transactional
+    public OfertaResponse publicarOferta(UUID id, UUID reclutadorId) {
+        return enviarARevision(id, reclutadorId);
+    }
+
+    @Override
+    @Transactional
+    public OfertaResponse aprobarOferta(UUID id, UUID adminId) {
+        Oferta oferta = ofertaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Oferta no encontrada"));
+
         estadoOfertaService.validarTransicion(oferta.getEstado(), EstadoOferta.PUBLICADA);
-        
+
         oferta.setEstado(EstadoOferta.PUBLICADA);
         oferta.setAceptaPostulaciones(true);
         if (oferta.getFechaPublicacion() == null) {
@@ -158,7 +179,27 @@ public class OfertaServiceImpl implements OfertaService {
         }
 
         oferta = ofertaRepository.save(oferta);
-        registrarAuditoria(reclutadorId, oferta.getId(), "OFERTA_PUBLICADA", "Oferta publicada para recibir postulaciones");
+        registrarAuditoria(adminId, oferta.getId(), "OFERTA_APROBADA",
+                "Oferta aprobada por administrador y publicada");
+        return ofertaMapper.toResponse(oferta, requisitoRepository.findByOfertaId(id));
+    }
+
+    @Override
+    @Transactional
+    public OfertaResponse rechazarOferta(UUID id, UUID adminId, String motivo) {
+        Oferta oferta = ofertaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Oferta no encontrada"));
+
+        estadoOfertaService.validarTransicion(oferta.getEstado(), EstadoOferta.RECHAZADA);
+
+        oferta.setEstado(EstadoOferta.RECHAZADA);
+        oferta.setAceptaPostulaciones(false);
+
+        oferta = ofertaRepository.save(oferta);
+        String desc = motivo != null && !motivo.isBlank()
+                ? "Oferta rechazada por administrador. Motivo: " + motivo
+                : "Oferta rechazada por administrador";
+        registrarAuditoria(adminId, oferta.getId(), "OFERTA_RECHAZADA", desc);
         return ofertaMapper.toResponse(oferta, requisitoRepository.findByOfertaId(id));
     }
 

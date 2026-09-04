@@ -11,6 +11,14 @@ export const jobService = {
     return data;
   },
 
+  // Admin: obtiene TODAS las ofertas (sin filtro de estado forzado)
+  async getAllJobsAdmin(params?: Record<string, any>): Promise<PageResponse<OfertaResponse>> {
+    const { data } = await ofertasApi.get<PageResponse<OfertaResponse>>('/ofertas', {
+      params: { ...params },
+    });
+    return data;
+  },
+
   async getJobById(id: string): Promise<OfertaResponse> {
     const { data } = await ofertasApi.get<OfertaResponse>(`/ofertas/${id}`);
     return data;
@@ -28,8 +36,28 @@ export const jobService = {
     return data;
   },
 
+  // Empresa: envía la oferta a revisión del admin (antes era "publicar")
+  async submitForReview(id: string): Promise<OfertaResponse> {
+    const { data } = await ofertasApi.patch<OfertaResponse>(`/ofertas/${id}/enviar-revision`);
+    return data;
+  },
+
+  // Alias retrocompatible
   async publishJob(id: string): Promise<OfertaResponse> {
-    const { data } = await ofertasApi.patch<OfertaResponse>(`/ofertas/${id}/publicar`);
+    return this.submitForReview(id);
+  },
+
+  // Admin: aprueba la oferta → pasa a PUBLICADA
+  async approveJob(id: string): Promise<OfertaResponse> {
+    const { data } = await ofertasApi.patch<OfertaResponse>(`/ofertas/${id}/aprobar`);
+    return data;
+  },
+
+  // Admin: rechaza la oferta → pasa a RECHAZADA
+  async rejectJob(id: string, motivo?: string): Promise<OfertaResponse> {
+    const { data } = await ofertasApi.patch<OfertaResponse>(`/ofertas/${id}/rechazar`, null, {
+      params: motivo ? { motivo } : {},
+    });
     return data;
   },
 

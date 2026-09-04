@@ -13,10 +13,12 @@ public class EstadoOfertaService {
         }
 
         boolean valid = switch (actual) {
-            case BORRADOR -> nuevo == EstadoOferta.PUBLICADA || nuevo == EstadoOferta.CANCELADA;
+            case BORRADOR -> nuevo == EstadoOferta.PENDIENTE_APROBACION || nuevo == EstadoOferta.CANCELADA;
+            case PENDIENTE_APROBACION -> nuevo == EstadoOferta.PUBLICADA || nuevo == EstadoOferta.RECHAZADA || nuevo == EstadoOferta.BORRADOR;
+            case RECHAZADA -> nuevo == EstadoOferta.BORRADOR; // Permite corregir y reenviar
             case PUBLICADA -> nuevo == EstadoOferta.PAUSADA || nuevo == EstadoOferta.CERRADA || nuevo == EstadoOferta.VENCIDA;
             case PAUSADA -> nuevo == EstadoOferta.PUBLICADA || nuevo == EstadoOferta.CERRADA || nuevo == EstadoOferta.VENCIDA;
-            case CERRADA, VENCIDA, CANCELADA -> false; // Estados finales, no se permiten salidas
+            case CERRADA, VENCIDA, CANCELADA -> false; // Estados finales
         };
 
         if (!valid) {

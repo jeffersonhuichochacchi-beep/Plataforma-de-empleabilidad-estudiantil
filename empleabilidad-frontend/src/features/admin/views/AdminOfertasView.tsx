@@ -1,197 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   Search,
   Filter,
   Plus,
-  MoreVertical,
   Eye,
-  Edit,
-  Trash2,
   CheckCircle,
   XCircle,
   Clock,
   TrendingUp,
-  Building2,
   MapPin,
   Users,
   ChevronLeft,
   ChevronRight,
   Tag,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { jobService } from '../../jobs/services/job.service';
+import type { OfertaResponse } from '../../jobs/types/job.types';
+import type { PageResponse } from '@/shared/types';
 
-// ─── Datos de ejemplo ──────────────────────────────────────────────────────────
-const MOCK_OFFERS = [
-  {
-    id: 1,
-    titulo: 'Desarrollador Full-Stack Senior',
-    empresa: 'TechCorp S.A.',
-    ubicacion: 'Lima, Perú',
-    modalidad: 'Remoto',
-    categoria: 'Tecnología',
-    salario: 'S/. 6,000 – 9,000',
-    postulantes: 34,
-    estado: 'Activa',
-    fechaPublicacion: '2026-08-20',
-    logo: 'TC',
-    color: 'from-blue-500 to-indigo-600',
-  },
-  {
-    id: 2,
-    titulo: 'Diseñador UX/UI',
-    empresa: 'Creative Studio',
-    ubicacion: 'Arequipa, Perú',
-    modalidad: 'Híbrido',
-    categoria: 'Diseño',
-    salario: 'S/. 3,500 – 5,000',
-    postulantes: 21,
-    estado: 'Activa',
-    fechaPublicacion: '2026-08-22',
-    logo: 'CS',
-    color: 'from-pink-500 to-rose-500',
-  },
-  {
-    id: 3,
-    titulo: 'Analista de Datos',
-    empresa: 'DataSoft Inc.',
-    ubicacion: 'Cusco, Perú',
-    modalidad: 'Presencial',
-    categoria: 'Datos',
-    salario: 'S/. 4,000 – 6,500',
-    postulantes: 15,
-    estado: 'Pausada',
-    fechaPublicacion: '2026-08-15',
-    logo: 'DS',
-    color: 'from-emerald-500 to-teal-600',
-  },
-  {
-    id: 4,
-    titulo: 'Gerente de Proyectos TI',
-    empresa: 'Global Solutions',
-    ubicacion: 'Lima, Perú',
-    modalidad: 'Remoto',
-    categoria: 'Gestión',
-    salario: 'S/. 8,000 – 12,000',
-    postulantes: 9,
-    estado: 'Activa',
-    fechaPublicacion: '2026-08-28',
-    logo: 'GS',
-    color: 'from-violet-500 to-purple-600',
-  },
-  {
-    id: 5,
-    titulo: 'Ingeniero DevOps',
-    empresa: 'CloudBase Ltd.',
-    ubicacion: 'Lima, Perú',
-    modalidad: 'Remoto',
-    categoria: 'Tecnología',
-    salario: 'S/. 7,000 – 10,000',
-    postulantes: 27,
-    estado: 'Cerrada',
-    fechaPublicacion: '2026-07-30',
-    logo: 'CB',
-    color: 'from-orange-500 to-amber-500',
-  },
-  {
-    id: 6,
-    titulo: 'Marketing Digital Specialist',
-    empresa: 'AdVenture Corp.',
-    ubicacion: 'Trujillo, Perú',
-    modalidad: 'Híbrido',
-    categoria: 'Marketing',
-    salario: 'S/. 2,800 – 4,000',
-    postulantes: 42,
-    estado: 'Activa',
-    fechaPublicacion: '2026-09-01',
-    logo: 'AV',
-    color: 'from-cyan-500 to-sky-600',
-  },
-];
-
-const STATS = [
-  {
-    label: 'Total Ofertas',
-    value: '87',
-    change: '+12%',
-    up: true,
-    icon: Briefcase,
-    bg: 'bg-violet-50',
-    text: 'text-violet-600',
-  },
-  {
-    label: 'Ofertas Activas',
-    value: '64',
-    change: '+8%',
-    up: true,
-    icon: CheckCircle,
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-600',
-  },
-  {
-    label: 'Postulantes Totales',
-    value: '1,248',
-    change: '+22%',
-    up: true,
-    icon: Users,
-    bg: 'bg-blue-50',
-    text: 'text-blue-600',
-  },
-  {
-    label: 'Ofertas Cerradas',
-    value: '23',
-    change: '-5%',
-    up: false,
-    icon: XCircle,
-    bg: 'bg-rose-50',
-    text: 'text-rose-600',
-  },
-];
-
-const CATEGORIAS_FILTER = ['Todas', 'Tecnología', 'Diseño', 'Datos', 'Gestión', 'Marketing'];
-const ESTADOS = ['Todos', 'Activa', 'Pausada', 'Cerrada'];
+// ─── Tipos ─────────────────────────────────────────────────────────────────────
+type EstadoFiltro = 'Todos' | 'PENDIENTE_APROBACION' | 'PUBLICADA' | 'BORRADOR' | 'RECHAZADA' | 'PAUSADA' | 'CERRADA';
 
 // ─── Sub-componentes ───────────────────────────────────────────────────────────
 const EstadoBadge = ({ estado }: { estado: string }) => {
   const map: Record<string, string> = {
-    Activa: 'bg-emerald-100 text-emerald-700',
-    Pausada: 'bg-amber-100 text-amber-700',
-    Cerrada: 'bg-rose-100 text-rose-700',
+    PUBLICADA:            'bg-emerald-100 text-emerald-700',
+    PENDIENTE_APROBACION: 'bg-amber-100 text-amber-700',
+    RECHAZADA:            'bg-rose-100 text-rose-700',
+    BORRADOR:             'bg-slate-100 text-slate-600',
+    PAUSADA:              'bg-orange-100 text-orange-700',
+    CERRADA:              'bg-slate-100 text-slate-500',
+    VENCIDA:              'bg-red-100 text-red-600',
   };
   const iconMap: Record<string, React.ReactNode> = {
-    Activa: <CheckCircle className="w-3 h-3" />,
-    Pausada: <Clock className="w-3 h-3" />,
-    Cerrada: <XCircle className="w-3 h-3" />,
+    PUBLICADA:            <CheckCircle className="w-3 h-3" />,
+    PENDIENTE_APROBACION: <Clock className="w-3 h-3" />,
+    RECHAZADA:            <XCircle className="w-3 h-3" />,
+    BORRADOR:             <AlertCircle className="w-3 h-3" />,
+    PAUSADA:              <Clock className="w-3 h-3" />,
+    CERRADA:              <XCircle className="w-3 h-3" />,
+  };
+  const label: Record<string, string> = {
+    PUBLICADA:            'Publicada',
+    PENDIENTE_APROBACION: 'Pendiente',
+    RECHAZADA:            'Rechazada',
+    BORRADOR:             'Borrador',
+    PAUSADA:              'Pausada',
+    CERRADA:              'Cerrada',
+    VENCIDA:              'Vencida',
   };
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${map[estado] ?? 'bg-slate-100 text-slate-600'}`}>
       {iconMap[estado]}
-      {estado}
+      {label[estado] ?? estado}
     </span>
   );
 };
 
 const ModalidadBadge = ({ modalidad }: { modalidad: string }) => {
   const map: Record<string, string> = {
-    Remoto: 'bg-blue-100 text-blue-700',
-    Híbrido: 'bg-violet-100 text-violet-700',
-    Presencial: 'bg-slate-100 text-slate-700',
+    REMOTO:     'bg-blue-100 text-blue-700',
+    HIBRIDO:    'bg-violet-100 text-violet-700',
+    PRESENCIAL: 'bg-slate-100 text-slate-700',
+  };
+  const label: Record<string, string> = {
+    REMOTO:     'Remoto',
+    HIBRIDO:    'Híbrido',
+    PRESENCIAL: 'Presencial',
   };
   return (
     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${map[modalidad] ?? 'bg-slate-100 text-slate-600'}`}>
-      {modalidad}
+      {label[modalidad] ?? modalidad}
     </span>
   );
 };
 
 const CATEGORIAS_DATA = [
-  { nombre: 'Tecnología', ofertas: 32, color: 'from-blue-500 to-indigo-600', icono: '💻' },
-  { nombre: 'Diseño', ofertas: 14, color: 'from-pink-500 to-rose-500', icono: '🎨' },
-  { nombre: 'Datos & Analytics', ofertas: 11, color: 'from-emerald-500 to-teal-600', icono: '📊' },
-  { nombre: 'Gestión', ofertas: 9, color: 'from-violet-500 to-purple-600', icono: '📋' },
-  { nombre: 'Marketing', ofertas: 12, color: 'from-orange-500 to-amber-500', icono: '📣' },
-  { nombre: 'Finanzas', ofertas: 6, color: 'from-cyan-500 to-sky-600', icono: '💰' },
-  { nombre: 'Recursos Humanos', ofertas: 3, color: 'from-rose-400 to-pink-500', icono: '🤝' },
+  { nombre: 'Tecnología',       color: 'from-blue-500 to-indigo-600',  icono: '💻' },
+  { nombre: 'Diseño',           color: 'from-pink-500 to-rose-500',    icono: '🎨' },
+  { nombre: 'Datos & Analytics',color: 'from-emerald-500 to-teal-600', icono: '📊' },
+  { nombre: 'Gestión',          color: 'from-violet-500 to-purple-600',icono: '📋' },
+  { nombre: 'Marketing',        color: 'from-orange-500 to-amber-500', icono: '📣' },
+  { nombre: 'Finanzas',         color: 'from-cyan-500 to-sky-600',     icono: '💰' },
+  { nombre: 'RRHH',             color: 'from-rose-400 to-pink-500',    icono: '🤝' },
 ];
 
 const CategoriasView = () => (
@@ -199,40 +95,21 @@ const CategoriasView = () => (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
         <Tag className="w-5 h-5 text-violet-600" />
-        <span className="text-base font-semibold text-slate-700">
-          {CATEGORIAS_DATA.length} categorías registradas
-        </span>
+        <span className="text-base font-semibold text-slate-700">{CATEGORIAS_DATA.length} categorías registradas</span>
       </div>
       <button className="flex items-center gap-2 border border-violet-300 text-violet-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-violet-50 transition-colors">
-        <Plus className="w-4 h-4" />
-        Nueva Categoría
+        <Plus className="w-4 h-4" /> Nueva Categoría
       </button>
     </div>
-
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {CATEGORIAS_DATA.map((cat) => (
-        <div
-          key={cat.nombre}
-          className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group"
-        >
+        <div key={cat.nombre} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group">
           <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center text-2xl mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
             {cat.icono}
           </div>
           <h3 className="font-semibold text-slate-800 mb-1">{cat.nombre}</h3>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">
-              <span className="font-bold text-slate-700">{cat.ofertas}</span> ofertas
-            </span>
-            <div className="flex items-center gap-1 text-xs text-emerald-600">
-              <TrendingUp className="w-3 h-3" />
-              Activa
-            </div>
-          </div>
-          <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full bg-gradient-to-r ${cat.color}`}
-              style={{ width: `${(cat.ofertas / 32) * 100}%` }}
-            />
+          <div className="flex items-center gap-1 text-xs text-emerald-600 mt-2">
+            <TrendingUp className="w-3 h-3" /> Activa
           </div>
         </div>
       ))}
@@ -240,66 +117,175 @@ const CategoriasView = () => (
   </div>
 );
 
+// ─── Modal de Rechazo ──────────────────────────────────────────────────────────
+const RechazarModal = ({
+  titulo,
+  onConfirm,
+  onCancel,
+}: {
+  titulo: string;
+  onConfirm: (motivo: string) => void;
+  onCancel: () => void;
+}) => {
+  const [motivo, setMotivo] = useState('');
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-1">Rechazar oferta</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Estás rechazando: <span className="font-medium text-slate-700">"{titulo}"</span>
+        </p>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Motivo (opcional)</label>
+        <textarea
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Indica el motivo del rechazo para que la empresa pueda corregirlo..."
+          className="w-full h-24 px-4 py-3 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-rose-400"
+        />
+        <div className="flex gap-3 mt-5">
+          <button onClick={onCancel} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={() => onConfirm(motivo)}
+            className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-medium hover:bg-rose-700 transition-colors"
+          >
+            Confirmar rechazo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Vista Principal ────────────────────────────────────────────────────────────
 export const AdminOfertasView = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [categoriaFiltro, setCategoriaFiltro] = useState('Todas');
-  const [estadoFiltro, setEstadoFiltro] = useState('Todos');
-  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const location  = useLocation();
+  const navigate  = useNavigate();
 
-  // Determina el tab activo según la ruta actual
-  const getTabFromPath = (path: string): 'lista' | 'categorias' => {
-    if (path.includes('categorias')) return 'categorias';
-    return 'lista';
-  };
-  const [activeTab, setActiveTab] = useState<'lista' | 'categorias'>(
-    getTabFromPath(location.pathname)
-  );
+  const getTabFromPath = (path: string): 'lista' | 'categorias' =>
+    path.includes('categorias') ? 'categorias' : 'lista';
 
-  // Sincroniza tab con la URL cuando cambia la navegación
+  const [activeTab, setActiveTab]       = useState<'lista' | 'categorias'>(getTabFromPath(location.pathname));
+  const [search, setSearch]             = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('Todos');
+  const [page, setPage]                 = useState(0);
+
+  const [jobsData, setJobsData]         = useState<PageResponse<OfertaResponse> | null>(null);
+  const [isLoading, setIsLoading]       = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [rechazarTarget, setRechazarTarget] = useState<{ id: string; titulo: string } | null>(null);
+
+  // Stats derivadas de los datos del backend
+  const totalOfertas    = jobsData?.totalElements ?? 0;
+  const pendientes      = jobsData?.content.filter((j) => j.estado === 'PENDIENTE_APROBACION').length ?? 0;
+  const publicadas      = jobsData?.content.filter((j) => j.estado === 'PUBLICADA').length ?? 0;
+  const rechazadas      = jobsData?.content.filter((j) => j.estado === 'RECHAZADA').length ?? 0;
+
+  // Sync tab con URL
   useEffect(() => {
     setActiveTab(getTabFromPath(location.pathname));
   }, [location.pathname]);
 
-  const ofertas = MOCK_OFFERS.filter((o) => {
-    const matchSearch =
-      o.titulo.toLowerCase().includes(search.toLowerCase()) ||
-      o.empresa.toLowerCase().includes(search.toLowerCase());
-    const matchCategoria = categoriaFiltro === 'Todas' || o.categoria === categoriaFiltro;
-    const matchEstado = estadoFiltro === 'Todos' || o.estado === estadoFiltro;
-    return matchSearch && matchCategoria && matchEstado;
-  });
+  const fetchOfertas = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params: Record<string, any> = { size: 15, page };
+      if (estadoFiltro !== 'Todos') params.estado = estadoFiltro;
+      if (search.trim()) params.q = search.trim();
+      const data = await jobService.getAllJobsAdmin(params);
+      setJobsData(data);
+    } catch (err) {
+      toast.error('Error al cargar las ofertas');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [estadoFiltro, search, page]);
+
+  useEffect(() => {
+    if (activeTab === 'lista') fetchOfertas();
+  }, [activeTab, fetchOfertas]);
+
+  const handleAprobar = async (id: string) => {
+    setActionLoading(id + '_aprobar');
+    try {
+      await jobService.approveJob(id);
+      toast.success('✅ Oferta aprobada y publicada');
+      fetchOfertas();
+    } catch {
+      toast.error('Error al aprobar la oferta');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRechazar = async (motivo: string) => {
+    if (!rechazarTarget) return;
+    setActionLoading(rechazarTarget.id + '_rechazar');
+    try {
+      await jobService.rejectJob(rechazarTarget.id, motivo);
+      toast.success('Oferta rechazada. La empresa será notificada.');
+      setRechazarTarget(null);
+      fetchOfertas();
+    } catch {
+      toast.error('Error al rechazar la oferta');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const STATS = [
+    { label: 'Total Ofertas',        value: String(totalOfertas), icon: Briefcase,    bg: 'bg-violet-50',  text: 'text-violet-600' },
+    { label: 'Pendientes de Revisión',value: String(pendientes),  icon: Clock,        bg: 'bg-amber-50',   text: 'text-amber-600'  },
+    { label: 'Publicadas',            value: String(publicadas),  icon: CheckCircle,  bg: 'bg-emerald-50', text: 'text-emerald-600'},
+    { label: 'Rechazadas',            value: String(rechazadas),  icon: XCircle,      bg: 'bg-rose-50',    text: 'text-rose-600'   },
+  ];
+
+  const ESTADOS: EstadoFiltro[] = ['Todos', 'PENDIENTE_APROBACION', 'PUBLICADA', 'BORRADOR', 'RECHAZADA', 'PAUSADA', 'CERRADA'];
+  const ESTADO_LABEL: Record<EstadoFiltro, string> = {
+    Todos:                'Todos',
+    PENDIENTE_APROBACION: 'Pendientes',
+    PUBLICADA:            'Publicadas',
+    BORRADOR:             'Borradores',
+    RECHAZADA:            'Rechazadas',
+    PAUSADA:              'Pausadas',
+    CERRADA:              'Cerradas',
+  };
+
+  const ofertas = jobsData?.content ?? [];
+  const totalPages = jobsData?.totalPages ?? 1;
 
   return (
     <div className="space-y-6">
+      {/* Modal rechazo */}
+      {rechazarTarget && (
+        <RechazarModal
+          titulo={rechazarTarget.titulo}
+          onConfirm={handleRechazar}
+          onCancel={() => setRechazarTarget(null)}
+        />
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Gestión de Ofertas</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Administra todas las ofertas de empleo publicadas en la plataforma
-          </p>
+          <p className="text-sm text-slate-500 mt-1">Revisa y aprueba las ofertas enviadas por las empresas</p>
         </div>
-        <button className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:from-violet-700 hover:to-indigo-700 transition-all shadow-lg shadow-violet-600/25">
-          <Plus className="w-4 h-4" />
-          Nueva Oferta
-        </button>
+        {pendientes > 0 && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-xl text-sm font-medium">
+            <Clock className="w-4 h-4" />
+            {pendientes} pendiente{pendientes > 1 ? 's' : ''} de revisión
+          </div>
+        )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {STATS.map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-5 border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-11 h-11 ${s.bg} rounded-xl flex items-center justify-center`}>
-                <s.icon className={`w-5 h-5 ${s.text}`} />
-              </div>
-              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${s.up ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                {s.change}
-              </span>
+            <div className={`w-11 h-11 ${s.bg} rounded-xl flex items-center justify-center mb-4`}>
+              <s.icon className={`w-5 h-5 ${s.text}`} />
             </div>
             <div className="text-2xl font-bold text-slate-800">{s.value}</div>
             <div className="text-sm text-slate-500 mt-1">{s.label}</div>
@@ -317,9 +303,7 @@ export const AdminOfertasView = () => {
               navigate(tab === 'lista' ? '/admin/ofertas/listado' : '/admin/ofertas/categorias');
             }}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === tab
-                ? 'bg-white text-violet-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+              activeTab === tab ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             {tab === 'lista' ? 'Listado de Ofertas' : 'Categorías'}
@@ -329,39 +313,44 @@ export const AdminOfertasView = () => {
 
       {activeTab === 'lista' ? (
         <>
-          {/* Filtros */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
-            <div className="flex flex-col sm:flex-row gap-3">
+          {/* Filtros rápidos por estado */}
+          <div className="flex flex-wrap gap-2">
+            {ESTADOS.map((e) => (
+              <button
+                key={e}
+                onClick={() => { setEstadoFiltro(e); setPage(0); }}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                  estadoFiltro === e
+                    ? 'bg-violet-600 text-white border-violet-600 shadow-md'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-700'
+                }`}
+              >
+                {ESTADO_LABEL[e]}
+                {e === 'PENDIENTE_APROBACION' && pendientes > 0 && (
+                  <span className="ml-1.5 bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    {pendientes}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Buscador */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4">
+            <div className="flex gap-3">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Buscar por título o empresa..."
+                  placeholder="Buscar por título..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 />
               </div>
-              <div className="relative">
-                <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <select
-                  value={categoriaFiltro}
-                  onChange={(e) => setCategoriaFiltro(e.target.value)}
-                  className="pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500 appearance-none cursor-pointer"
-                >
-                  {CATEGORIAS_FILTER.map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <select
-                value={estadoFiltro}
-                onChange={(e) => setEstadoFiltro(e.target.value)}
-                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer"
-              >
-                {ESTADOS.map((e) => <option key={e}>{e}</option>)}
-              </select>
-            </div>
-            <div className="mt-3 text-xs text-slate-400">
-              Mostrando <span className="font-semibold text-slate-600">{ofertas.length}</span> ofertas
+              <button onClick={fetchOfertas} className="px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors flex items-center gap-2">
+                <Filter className="w-4 h-4" /> Filtrar
+              </button>
             </div>
           </div>
 
@@ -372,121 +361,143 @@ export const AdminOfertasView = () => {
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/60">
                     <th className="text-left px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Oferta</th>
-                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Empresa</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Modalidad</th>
-                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Salario</th>
                     <th className="text-center px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Postulantes</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
                     <th className="text-right px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {ofertas.map((oferta) => (
-                    <tr key={oferta.id} className="hover:bg-slate-50/60 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${oferta.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                            {oferta.logo}
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold text-slate-800 group-hover:text-violet-700 transition-colors">
-                              {oferta.titulo}
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 text-slate-400" />
-                              <span className="text-xs text-slate-400">{oferta.ubicacion}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-slate-400" />
-                          <span className="text-sm text-slate-600">{oferta.empresa}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 hidden md:table-cell">
-                        <ModalidadBadge modalidad={oferta.modalidad} />
-                      </td>
-                      <td className="px-4 py-4 hidden lg:table-cell">
-                        <span className="text-sm font-medium text-slate-700">{oferta.salario}</span>
-                      </td>
-                      <td className="px-4 py-4 text-center hidden lg:table-cell">
-                        <div className="flex items-center justify-center gap-1">
-                          <Users className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-sm font-semibold text-slate-700">{oferta.postulantes}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <EstadoBadge estado={oferta.estado} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1 relative">
-                          <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-violet-600">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-blue-600">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-rose-600">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <div className="relative">
-                            <button
-                              onClick={() => setActiveMenu(activeMenu === oferta.id ? null : oferta.id)}
-                              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                            {activeMenu === oferta.id && (
-                              <div className="absolute right-0 top-8 bg-white border border-slate-200 rounded-xl shadow-xl z-10 py-1 min-w-[140px]">
-                                <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-violet-50 hover:text-violet-700 flex items-center gap-2">
-                                  <CheckCircle className="w-4 h-4" /> Activar
-                                </button>
-                                <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2">
-                                  <Clock className="w-4 h-4" /> Pausar
-                                </button>
-                                <button className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2">
-                                  <XCircle className="w-4 h-4" /> Cerrar
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={5} className="py-16 text-center">
+                        <Loader2 className="w-8 h-8 text-violet-500 animate-spin mx-auto mb-2" />
+                        <p className="text-sm text-slate-500">Cargando ofertas...</p>
                       </td>
                     </tr>
-                  ))}
+                  ) : ofertas.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-16 text-center">
+                        <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No se encontraron ofertas</p>
+                        <p className="text-sm text-slate-400 mt-1">Intenta cambiar los filtros</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    ofertas.map((oferta) => {
+                      const isPending    = oferta.estado === 'PENDIENTE_APROBACION';
+                      const loadAprobar  = actionLoading === oferta.id + '_aprobar';
+                      const loadRechazar = actionLoading === oferta.id + '_rechazar';
+
+                      return (
+                        <tr
+                          key={oferta.id}
+                          className={`hover:bg-slate-50/60 transition-colors group ${isPending ? 'bg-amber-50/30' : ''}`}
+                        >
+                          {/* Oferta */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                {oferta.titulo.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="text-sm font-semibold text-slate-800 group-hover:text-violet-700 transition-colors">
+                                  {oferta.titulo}
+                                </div>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  {oferta.ubicacion && (
+                                    <>
+                                      <MapPin className="w-3 h-3 text-slate-400" />
+                                      <span className="text-xs text-slate-400">{oferta.ubicacion}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Modalidad */}
+                          <td className="px-4 py-4 hidden md:table-cell">
+                            <ModalidadBadge modalidad={oferta.modalidad ?? ''} />
+                          </td>
+
+                          {/* Postulantes */}
+                          <td className="px-4 py-4 text-center hidden lg:table-cell">
+                            <div className="flex items-center justify-center gap-1">
+                              <Users className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="text-sm font-semibold text-slate-700">{oferta.numeroPostulaciones}</span>
+                            </div>
+                          </td>
+
+                          {/* Estado */}
+                          <td className="px-4 py-4">
+                            <EstadoBadge estado={oferta.estado} />
+                          </td>
+
+                          {/* Acciones */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Ver */}
+                              <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-violet-600" title="Ver oferta">
+                                <Eye className="w-4 h-4" />
+                              </button>
+
+                              {/* Aprobar — solo si está PENDIENTE */}
+                              {isPending && (
+                                <>
+                                  <button
+                                    onClick={() => handleAprobar(oferta.id)}
+                                    disabled={!!actionLoading}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                                    title="Aprobar oferta"
+                                  >
+                                    {loadAprobar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                    Aprobar
+                                  </button>
+                                  <button
+                                    onClick={() => setRechazarTarget({ id: oferta.id, titulo: oferta.titulo })}
+                                    disabled={!!actionLoading}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 transition-colors disabled:opacity-50"
+                                    title="Rechazar oferta"
+                                  >
+                                    {loadRechazar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                                    Rechazar
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
-
-              {ofertas.length === 0 && (
-                <div className="py-16 text-center">
-                  <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">No se encontraron ofertas</p>
-                  <p className="text-sm text-slate-400 mt-1">Intenta ajustar los filtros de búsqueda</p>
-                </div>
-              )}
             </div>
 
             {/* Paginación */}
-            {ofertas.length > 0 && (
+            {!isLoading && ofertas.length > 0 && (
               <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
                 <p className="text-sm text-slate-500">
-                  Página <span className="font-semibold text-slate-700">1</span> de <span className="font-semibold text-slate-700">5</span>
+                  Página <span className="font-semibold text-slate-700">{page + 1}</span> de{' '}
+                  <span className="font-semibold text-slate-700">{totalPages}</span>
                 </p>
                 <div className="flex items-center gap-1">
-                  <button className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 disabled:opacity-40" disabled>
+                  <button
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 disabled:opacity-40"
+                  >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  {[1, 2, 3, '...', 5].map((p, i) => (
-                    <button
-                      key={i}
-                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${p === 1 ? 'bg-violet-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                  <button className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-600">
+                  <span className="w-8 h-8 rounded-lg bg-violet-600 text-white text-sm font-medium flex items-center justify-center">
+                    {page + 1}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-600 disabled:opacity-40"
+                  >
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>

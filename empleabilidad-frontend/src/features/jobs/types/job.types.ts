@@ -2,7 +2,7 @@ export type NivelExperiencia = 'PRACTICANTE' | 'JUNIOR' | 'SEMI_SENIOR' | 'SENIO
 export type TipoContrato = 'TIEMPO_COMPLETO' | 'MEDIO_TIEMPO' | 'POR_PROYECTO' | 'TEMPORAL' | 'PRACTICAS' | 'FREELANCE';
 export type Modalidad = 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO';
 export type Jornada = 'DIURNA' | 'NOCTURNA' | 'MIXTA' | 'POR_TURNOS' | 'FLEXIBLE';
-export type EstadoOferta = 'BORRADOR' | 'PUBLICADA' | 'PAUSADA' | 'CERRADA' | 'VENCIDA' | 'CANCELADA';
+export type EstadoOferta = 'BORRADOR' | 'PENDIENTE_APROBACION' | 'RECHAZADA' | 'PUBLICADA' | 'PAUSADA' | 'CERRADA' | 'VENCIDA' | 'CANCELADA';
 
 export interface RequisitoOfertaResponse {
   id: string;

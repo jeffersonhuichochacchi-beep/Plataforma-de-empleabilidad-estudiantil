@@ -19,8 +19,17 @@ public interface OfertaService {
     
     OfertaResponse actualizarOferta(UUID id, UUID reclutadorId, OfertaRequest request, List<RequisitoOfertaRequest> requisitos);
     
+    // La empresa envía la oferta a revisión del admin
+    OfertaResponse enviarARevision(UUID id, UUID reclutadorId);
+
+    // Alias retrocompatible para enviar a revisión
     OfertaResponse publicarOferta(UUID id, UUID reclutadorId);
-    
+
+    // El admin aprueba o rechaza la oferta
+    OfertaResponse aprobarOferta(UUID id, UUID adminId);
+
+    OfertaResponse rechazarOferta(UUID id, UUID adminId, String motivo);
+
     OfertaResponse pausarOferta(UUID id, UUID reclutadorId);
     
     OfertaResponse cerrarOferta(UUID id, UUID reclutadorId);

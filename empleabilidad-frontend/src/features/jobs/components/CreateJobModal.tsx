@@ -52,9 +52,9 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onSucce
       console.log('ID de usuario (empresaId):', user.id);
       const createdJob = await jobService.createJob(user.id, payload);
       console.log('Oferta creada:', createdJob);
-      // Backend automatically sets state to BORRADOR. We must publish it!
-      await jobService.publishJob(createdJob.id);
-      toast.success('Oferta publicada con éxito!');
+      // Backend automatically sets state to BORRADOR. We submit it for admin review!
+      await jobService.submitForReview(createdJob.id);
+      toast.success('Oferta enviada a revisión para aprobación del administrador!');
       onSuccess();
     } catch (err: any) {
       console.error('Error completo:', err);

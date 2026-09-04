@@ -83,8 +83,11 @@ export const CompanyOfertasView: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        job.estado === 'PUBLICADA' ? 'bg-emerald-100 text-emerald-800' : 
-                        job.estado === 'CERRADA' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800'
+                        job.estado === 'PUBLICADA'             ? 'bg-emerald-100 text-emerald-800' :
+                        job.estado === 'PENDIENTE_APROBACION'  ? 'bg-amber-100 text-amber-800'   :
+                        job.estado === 'RECHAZADA'             ? 'bg-red-100 text-red-800'        :
+                        job.estado === 'CERRADA'               ? 'bg-slate-100 text-slate-600'    :
+                        'bg-slate-100 text-slate-800'
                       }`}>
                         {job.estado}
                       </span>
@@ -97,19 +100,19 @@ export const CompanyOfertasView: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
-                      {job.estado === 'BORRADOR' && (
+                      {(job.estado === 'BORRADOR' || job.estado === 'RECHAZADA') && (
                         <button 
                           onClick={async () => {
                             try {
-                              await jobService.publishJob(job.id);
-                              toast.success('Oferta publicada con xito!');
+                              await jobService.submitForReview(job.id);
+                              toast.success('Oferta enviada a revisión. El administrador la revisará pronto.');
                               fetchMyJobs();
                             } catch (e: any) {
-                              toast.error('Error al publicar la oferta');
+                              toast.error('Error al enviar la oferta a revisión');
                             }
                           }}
-                          className="p-2 text-slate-400 hover:text-emerald-600 transition-colors font-medium text-xs border rounded bg-emerald-50 border-emerald-200" title="Publicar">
-                          Publicar
+                          className="p-2 text-slate-400 hover:text-amber-600 transition-colors font-medium text-xs border rounded bg-amber-50 border-amber-200" title="Enviar a revisión">
+                          {job.estado === 'RECHAZADA' ? 'Reenviar' : 'Enviar a revisión'}
                         </button>
                       )}
                       <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Ver detalle">
