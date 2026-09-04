@@ -14,4 +14,5 @@ import java.util.UUID;
 public interface EntrevistaRepository extends JpaRepository<Entrevista, UUID> {
     Optional<Entrevista> findByUuid(UUID uuid);
     Page<Entrevista> findByPostulacion(Postulacion postulacion, Pageable pageable);
+    void deleteByPostulacion(Postulacion postulacion);
 }

@@ -16,6 +16,8 @@ import com.elp.postulaciones_service.model.HistorialPostulacion;
 import com.elp.postulaciones_service.model.Postulacion;
 import com.elp.postulaciones_service.model.enums.EstadoPostulacion;
 import com.elp.postulaciones_service.repository.AuditoriaPostulacionRepository;
+import com.elp.postulaciones_service.repository.EntrevistaRepository;
+import com.elp.postulaciones_service.repository.EvaluacionPostulacionRepository;
 import com.elp.postulaciones_service.repository.HistorialPostulacionRepository;
 import com.elp.postulaciones_service.repository.PostulacionRepository;
 import com.elp.postulaciones_service.util.SecurityUtils;
@@ -43,6 +45,8 @@ public class PostulacionServiceImpl implements PostulacionService {
     private final PostulacionRepository postulacionRepository;
     private final HistorialPostulacionRepository historialRepository;
     private final AuditoriaPostulacionRepository auditoriaRepository;
+    private final EvaluacionPostulacionRepository evaluacionRepository;
+    private final EntrevistaRepository entrevistaRepository;
     private final EstadoPostulacionService estadoPostulacionService;
     private final PostulacionMapper postulacionMapper;
     
@@ -369,5 +373,31 @@ public class PostulacionServiceImpl implements PostulacionService {
             log.error("Error al obtener CV desde Cloudinary: {}", e.getMessage(), e);
             throw new RuntimeException("No se pudo obtener el archivo CV: " + e.getMessage());
         }
+    }
+
+    @Override
+    @Transactional
+    public void eliminarPostulacion(UUID uuid, UUID empresaId) {
+        Postulacion postulacion = buscarPorUuid(uuid);
+
+        // Validar que la postulación pertenece a la empresa
+        if (!postulacion.getEmpresaId().equals(empresaId)) {
+            throw new ForbiddenException("No tienes permiso para eliminar esta postulación");
+        }
+
+        log.info("Eliminando postulación {} de empresa {}", uuid, empresaId);
+
+        // Eliminar registros relacionados en orden
+        historialRepository.deleteByPostulacion(postulacion);
+        evaluacionRepository.deleteByPostulacion(postulacion);
+        entrevistaRepository.deleteByPostulacion(postulacion);
+
+        // Eliminar la postulación
+        postulacionRepository.delete(postulacion);
+
+        // Registrar auditoría
+        registrarAuditoria(empresaId, "POSTULACION_ELIMINADA", "Postulación " + uuid + " eliminada por la empresa");
+
+        log.info("Postulación {} eliminada exitosamente", uuid);
     }
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Users, Search, RefreshCw, FileText, ExternalLink, 
   CheckCircle2, XCircle, Clock, Eye, Briefcase, Mail, 
-  MessageSquare, AlertCircle, ArrowUpRight, Download, X
+  MessageSquare, AlertCircle, ArrowUpRight, Download, X, Trash2
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
@@ -58,6 +58,10 @@ export const CompanyCandidatosView: React.FC = () => {
   } | null>(null);
   const [comentarioCambio, setComentarioCambio] = useState('');
   const [viewingCvPostulacion, setViewingCvPostulacion] = useState<PostulacionResponse | null>(null);
+
+  // Delete
+  const [deleteTarget, setDeleteTarget] = useState<PostulacionResponse | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -121,6 +125,32 @@ export const CompanyCandidatosView: React.FC = () => {
       toast.error(msg);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  // Delete Handler
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await jobService.deleteApplication(deleteTarget.uuid);
+      toast.success(`Postulación de ${deleteTarget.candidatoNombre || 'candidato'} eliminada correctamente.`);
+      
+      // Remove from local state
+      setPostulaciones(prev => prev.filter(p => p.uuid !== deleteTarget.uuid));
+
+      // Close detail modal if viewing the deleted one
+      if (selectedPostulacion?.uuid === deleteTarget.uuid) {
+        setSelectedPostulacion(null);
+      }
+
+      setDeleteTarget(null);
+    } catch (error: any) {
+      console.error('Error deleting application:', error);
+      const msg = error.response?.data?.message || 'Error al eliminar la postulación.';
+      toast.error(msg);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -476,6 +506,16 @@ export const CompanyCandidatosView: React.FC = () => {
                               </select>
                             </div>
                           )}
+
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(postulacion)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="Eliminar postulación"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -759,6 +799,60 @@ export const CompanyCandidatosView: React.FC = () => {
                 className="w-full h-full rounded-xl border border-slate-200/80 bg-white shadow-inner"
                 title={`CV de ${viewingCvPostulacion.candidatoNombre}`}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Confirmation */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-rose-50 text-rose-600 rounded-xl">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Eliminar postulación</h3>
+                <p className="text-xs text-slate-500">
+                  Esta acción no se puede deshacer
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3.5 bg-rose-50/50 rounded-xl border border-rose-200 text-sm text-slate-700">
+                <p className="mb-2">
+                  ¿Estás seguro de que deseas eliminar la postulación de{' '}
+                  <span className="font-bold text-slate-900">{deleteTarget.candidatoNombre || 'este candidato'}</span>?
+                </p>
+                <p className="text-xs text-slate-500">
+                  Se eliminará permanentemente la postulación, su historial de estados, evaluaciones y entrevistas asociadas.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteTarget(null)}
+                >
+                  Cancelar
+                </Button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleConfirmDelete}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors shadow-sm"
+                >
+                  {isDeleting ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  {isDeleting ? 'Eliminando...' : 'Sí, eliminar'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

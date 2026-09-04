@@ -146,4 +146,9 @@ export const jobService = {
     );
     return data;
   },
+
+  // Empresa: Elimina permanentemente una postulación
+  async deleteApplication(uuid: string): Promise<void> {
+    await postulacionesApi.delete(`/postulaciones/${uuid}`);
+  },
 };

@@ -18,4 +18,5 @@ public interface PostulacionService {
     Page<PostulacionResponse> listarPostulacionesPorOferta(UUID ofertaId, UUID empresaIdLogueada, EstadoPostulacion estado, Pageable pageable);
     Page<PostulacionResponse> listarPostulacionesPorEmpresa(UUID empresaIdLogueada, UUID ofertaId, EstadoPostulacion estado, Pageable pageable);
     byte[] descargarCv(UUID uuid);
+    void eliminarPostulacion(UUID uuid, UUID empresaId);
 }

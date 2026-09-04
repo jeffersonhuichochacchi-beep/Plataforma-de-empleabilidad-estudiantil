@@ -14,4 +14,5 @@ import java.util.UUID;
 public interface EvaluacionPostulacionRepository extends JpaRepository<EvaluacionPostulacion, UUID> {
     Optional<EvaluacionPostulacion> findByUuid(UUID uuid);
     Page<EvaluacionPostulacion> findByPostulacion(Postulacion postulacion, Pageable pageable);
+    void deleteByPostulacion(Postulacion postulacion);
 }

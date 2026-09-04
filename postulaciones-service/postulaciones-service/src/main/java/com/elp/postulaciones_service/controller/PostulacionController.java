@@ -162,4 +162,13 @@ public class PostulacionController {
         
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
+
+    @DeleteMapping("/{uuid}")
+    @PreAuthorize("hasRole('EMPRESA') or hasRole('RECLUTADOR') or hasRole('ADMIN') or hasRole('ADMINISTRADOR')")
+    @Operation(summary = "Eliminar postulación", description = "La empresa elimina permanentemente una postulación de candidato")
+    public ResponseEntity<Void> eliminarPostulacion(@PathVariable UUID uuid) {
+        UUID empresaId = SecurityUtils.getUsuarioLogueadoId();
+        postulacionService.eliminarPostulacion(uuid, empresaId);
+        return ResponseEntity.noContent().build();
+    }
 }
