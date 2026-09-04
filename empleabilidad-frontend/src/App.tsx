@@ -17,6 +17,7 @@ import { CompanyOfertasView } from './features/jobs/views/CompanyOfertasView';
 import { CandidateSearchView } from './features/jobs/views/CandidateSearchView';
 import { ProfileOnboardingView } from './features/profile/views/ProfileOnboardingView';
 import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
+import { AdminOfertasView } from './features/admin/views/AdminOfertasView';
 
 // --- VISTAS PUBLICAS (VISITANTE) ---
 const Inicio = () => (
@@ -117,9 +118,9 @@ function App() {
             <Route path="usuarios/candidatos" element={<AdminDashboardView />} />
             <Route path="usuarios/empresas" element={<AdminDashboardView />} />
             <Route path="usuarios/roles" element={<AdminDashboardView />} />
-            <Route path="ofertas" element={<AdminDashboardView />} />
-            <Route path="ofertas/listado" element={<AdminDashboardView />} />
-            <Route path="ofertas/categorias" element={<AdminDashboardView />} />
+            <Route path="ofertas" element={<AdminOfertasView />} />
+            <Route path="ofertas/listado" element={<AdminOfertasView />} />
+            <Route path="ofertas/categorias" element={<AdminOfertasView />} />
             <Route path="postulaciones" element={<AdminDashboardView />} />
             <Route path="postulaciones/listado" element={<AdminDashboardView />} />
             <Route path="postulaciones/estados" element={<AdminDashboardView />} />
