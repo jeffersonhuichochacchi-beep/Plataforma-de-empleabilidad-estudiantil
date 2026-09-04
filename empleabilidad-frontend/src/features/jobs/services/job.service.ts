@@ -79,7 +79,32 @@ export const jobService = {
     return data;
   },
 
-  async applyToJob(ofertaId: string, empresaId: string, payload: { cartaPresentacion?: string; cvUrl?: string } = {}) {
+  async applyToJob(
+    ofertaId: string, 
+    empresaId: string, 
+    payload: { 
+      cartaPresentacion?: string; 
+      cvUrl?: string;
+      cvFile?: File;
+    } = {}
+  ) {
+    // Si hay un archivo CV, enviar como FormData
+    if (payload.cvFile) {
+      const formData = new FormData();
+      formData.append('ofertaId', ofertaId);
+      formData.append('empresaId', empresaId);
+      formData.append('cartaPresentacion', payload.cartaPresentacion || '');
+      formData.append('cvFile', payload.cvFile);
+      
+      const { data } = await postulacionesApi.post('/postulaciones', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return data;
+    }
+    
+    // Si no hay archivo, enviar como JSON (compatibilidad con versión anterior)
     const { data } = await postulacionesApi.post('/postulaciones', {
       ofertaId,
       empresaId,

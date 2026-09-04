@@ -20,8 +20,18 @@ public class PostulacionResponse {
     private String observaciones;
     private Timestamp fechaActualizacion;
     private Timestamp fechaCierre;
+    
+    // Información enriquecida del candidato
     private String candidatoNombre;
     private String candidatoEmail;
     private String candidatoFoto;
+    
+    // Información enriquecida de la oferta
     private String ofertaTitulo;
+    
+    // Campos de evaluación con IA
+    private Boolean cumpleRequerimientos;
+    private Integer porcentajeCoincidencia;
+    private String resumenIa;
+    private String habilidadesEncontradas;
 }

@@ -10,4 +10,10 @@ public class OfertaResumenDTO {
     private String titulo;
     private String estado;
     private Boolean aceptaPostulaciones;
+    
+    // Campos adicionales para evaluación con IA
+    private String descripcion;
+    private String areaProfesional;
+    private String nivelExperiencia;
+    private String modalidad;
 }

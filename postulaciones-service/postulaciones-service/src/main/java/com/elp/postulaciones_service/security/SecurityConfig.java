@@ -28,9 +28,25 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .cors(cors -> cors.configurationSource(request -> {
+                org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
+                config.setAllowedOrigins(java.util.Arrays.asList(
+                    "http://localhost:5173",
+                    "http://localhost:5174",
+                    "http://localhost:3000",
+                    "http://localhost:4200"
+                ));
+                config.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+                config.addAllowedHeader("*");
+                config.setAllowCredentials(true);
+                config.setMaxAge(600L);
+                config.setExposedHeaders(java.util.Arrays.asList("Authorization", "Content-Type", "Content-Disposition"));
+                return config;
+            }))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             )

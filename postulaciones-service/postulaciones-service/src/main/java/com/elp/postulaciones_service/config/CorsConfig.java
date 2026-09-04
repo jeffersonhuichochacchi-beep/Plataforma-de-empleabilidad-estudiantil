@@ -27,14 +27,17 @@ public class CorsConfig {
             "http://localhost:4200"
         ));
         
-        // Permitir todos los headers
+        // Permitir todos los headers (incluyendo Content-Type para multipart/form-data)
         config.addAllowedHeader("*");
         
         // Permitir todos los métodos HTTP
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         
-        // Exponer headers de autorización
-        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        // Exponer headers de autorización y content-type
+        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "Content-Disposition"));
+        
+        // Aumentar el tiempo de caché para preflight requests (10 minutos)
+        config.setMaxAge(600L);
         
         // Aplicar configuración a todas las rutas
         source.registerCorsConfiguration("/**", config);

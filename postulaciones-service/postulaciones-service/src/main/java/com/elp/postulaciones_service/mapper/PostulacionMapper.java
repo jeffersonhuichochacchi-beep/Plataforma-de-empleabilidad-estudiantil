@@ -24,6 +24,13 @@ public class PostulacionMapper {
         res.setObservaciones(postulacion.getObservaciones());
         res.setFechaActualizacion(postulacion.getFechaActualizacion());
         res.setFechaCierre(postulacion.getFechaCierre());
+        
+        // Mapear campos de evaluación IA
+        res.setCumpleRequerimientos(postulacion.getCumpleRequerimientos());
+        res.setPorcentajeCoincidencia(postulacion.getPorcentajeCoincidencia());
+        res.setResumenIa(postulacion.getResumenIa());
+        res.setHabilidadesEncontradas(postulacion.getHabilidadesEncontradas());
+        
         return res;
     }
 

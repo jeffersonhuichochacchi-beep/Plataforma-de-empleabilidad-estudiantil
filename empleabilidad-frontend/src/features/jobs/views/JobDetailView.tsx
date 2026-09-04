@@ -69,11 +69,9 @@ export const JobDetailView: React.FC = () => {
     setApplyError('');
 
     try {
-      // TODO: Implementar la lógica de backend para subir el archivo
-      // Por ahora simulamos el comportamiento anterior
       await jobService.applyToJob(job.id, job.empresaId, {
         cartaPresentacion: cartaPresentacion.trim(),
-        cvUrl: '', // Vacío por ahora hasta implementar backend
+        cvFile: cvFile, // Enviar el archivo en lugar de URL
       });
 
       toast.success('¡Tu postulación fue enviada correctamente!');

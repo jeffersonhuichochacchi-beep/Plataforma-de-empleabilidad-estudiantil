@@ -10,32 +10,50 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/postulaciones")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Postulaciones", description = "Gestiona todo el ciclo de vida de las postulaciones")
 @SecurityRequirement(name = "bearerAuth")
 public class PostulacionController {
 
     private final PostulacionService postulacionService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ESTUDIANTE') or hasRole('PROFESIONAL') or hasRole('CANDIDATO') or hasRole('EMPRESA') or hasRole('ADMINISTRADOR') or hasRole('ADMIN')")
-    @Operation(summary = "Crear postulacion", description = "Crea una nueva postulacion (solo candidatos)")
-    public ResponseEntity<PostulacionResponse> crearPostulacion(@Valid @RequestBody PostulacionRequest request) {
+    @Operation(summary = "Crear postulacion con CV", description = "Crea una nueva postulacion con archivo CV (PDF, DOC, DOCX)")
+    public ResponseEntity<PostulacionResponse> crearPostulacion(
+            @Valid @ModelAttribute PostulacionRequest request,
+            @RequestParam(value = "cvFile", required = false) MultipartFile cvFile) {
+        
         UUID candidatoId = SecurityUtils.getUsuarioLogueadoId();
-        PostulacionResponse response = postulacionService.crearPostulacion(candidatoId, request);
+        
+        log.info("Recibiendo postulación de candidato {} para oferta {}", 
+                candidatoId, request.getOfertaId());
+        
+        if (cvFile != null && !cvFile.isEmpty()) {
+            log.info("Archivo CV recibido: {}, Tamaño: {} bytes, Tipo: {}", 
+                    cvFile.getOriginalFilename(), cvFile.getSize(), cvFile.getContentType());
+        } else {
+            log.warn("No se recibió archivo CV en la postulación");
+        }
+        
+        PostulacionResponse response = postulacionService.crearPostulacion(candidatoId, request, cvFile);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 

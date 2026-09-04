@@ -72,4 +72,10 @@ export interface PostulacionResponse {
   candidatoEmail?: string;
   candidatoFoto?: string;
   ofertaTitulo?: string;
+  
+  // Campos de evaluación con IA
+  cumpleRequerimientos?: boolean;
+  porcentajeCoincidencia?: number;
+  resumenIa?: string;
+  habilidadesEncontradas?: string;
 }

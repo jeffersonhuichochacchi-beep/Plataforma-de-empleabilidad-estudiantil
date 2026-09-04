@@ -62,6 +62,19 @@ public class Postulacion {
     @Column(columnDefinition = "TEXT")
     private String observaciones;
 
+    // Campos de evaluación con IA
+    @Column(name = "cumple_requerimientos")
+    private Boolean cumpleRequerimientos;
+
+    @Column(name = "porcentaje_coincidencia")
+    private Integer porcentajeCoincidencia;
+
+    @Column(name = "resumen_ia", columnDefinition = "TEXT")
+    private String resumenIa;
+
+    @Column(name = "habilidades_encontradas", columnDefinition = "TEXT")
+    private String habilidadesEncontradas;
+
     @UpdateTimestamp
     @Column(name = "fecha_actualizacion")
     private Timestamp fechaActualizacion;

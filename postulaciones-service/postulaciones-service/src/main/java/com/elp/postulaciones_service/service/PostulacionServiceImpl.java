@@ -2,6 +2,7 @@ package com.elp.postulaciones_service.service;
 
 import com.elp.postulaciones_service.client.OfertasClient;
 import com.elp.postulaciones_service.client.UsuariosClient;
+import com.elp.postulaciones_service.dto.ResultadoEvaluacionDTO;
 import com.elp.postulaciones_service.dto.externo.OfertaResumenDTO;
 import com.elp.postulaciones_service.dto.postulacion.PostulacionRequest;
 import com.elp.postulaciones_service.dto.postulacion.PostulacionResponse;
@@ -19,16 +20,19 @@ import com.elp.postulaciones_service.repository.HistorialPostulacionRepository;
 import com.elp.postulaciones_service.repository.PostulacionRepository;
 import com.elp.postulaciones_service.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PostulacionServiceImpl implements PostulacionService {
 
     private final PostulacionRepository postulacionRepository;
@@ -39,46 +43,127 @@ public class PostulacionServiceImpl implements PostulacionService {
     
     private final OfertasClient ofertasClient;
     private final UsuariosClient usuariosClient;
+    
+    // Servicios nuevos para CV
+    private final CloudinaryService cloudinaryService;
+    private final GeminiAiService geminiAiService;
 
     @Override
     @Transactional
-    public PostulacionResponse crearPostulacion(UUID candidatoId, PostulacionRequest request) {
+    public PostulacionResponse crearPostulacion(UUID candidatoId, PostulacionRequest request, MultipartFile cvFile) {
+        log.info("Iniciando creación de postulación para candidato {} en oferta {}", candidatoId, request.getOfertaId());
+        
+        // Validar que no exista postulación duplicada
         if (postulacionRepository.existsByCandidatoIdAndOfertaId(candidatoId, request.getOfertaId())) {
             throw new DuplicatePostulationException("El candidato ya tiene una postulacion activa para esta oferta.");
         }
 
         String jwt = SecurityUtils.getJwtToken();
 
-        // 1. Validar existencia del candidato (no asume que existe aunque tenga JWT, podria estar suspendido o borrado)
+        // 1. Validar existencia del candidato
         usuariosClient.obtenerResumenCandidato(candidatoId, jwt);
 
-        // 2. Validar oferta
+        // 2. Validar oferta y obtener información
         OfertaResumenDTO oferta = ofertasClient.validarOferta(request.getOfertaId(), jwt);
-        if (!Boolean.TRUE.equals(oferta.getAceptaPostulaciones()) || (!"ACTIVA".equals(oferta.getEstado()) && !"PUBLICADA".equals(oferta.getEstado()))) {
+        if (!Boolean.TRUE.equals(oferta.getAceptaPostulaciones()) || 
+            (!"ACTIVA".equals(oferta.getEstado()) && !"PUBLICADA".equals(oferta.getEstado()))) {
             throw new BusinessException("La oferta no acepta postulaciones actualmente.");
         }
         if (!oferta.getEmpresaId().equals(request.getEmpresaId())) {
             throw new BusinessException("Discrepancia en la empresa: la oferta no pertenece a la empresa indicada.");
         }
 
+        // 3. Crear entidad de postulación
         Postulacion postulacion = new Postulacion();
         postulacion.setCandidatoId(candidatoId);
         postulacion.setOfertaId(request.getOfertaId());
         postulacion.setEmpresaId(request.getEmpresaId());
         postulacion.setCartaPresentacion(request.getCartaPresentacion());
-        postulacion.setCvUrl(request.getCvUrl());
         postulacion.setEstado(EstadoPostulacion.ENVIADA);
 
+        // 4. Procesar CV si está presente
+        if (cvFile != null && !cvFile.isEmpty()) {
+            try {
+                log.info("Procesando CV para postulación...");
+                
+                // 4a. Subir CV a Cloudinary
+                String cvUrl = cloudinaryService.subirCv(cvFile);
+                postulacion.setCvUrl(cvUrl);
+                log.info("CV subido exitosamente a: {}", cvUrl);
+                
+                // 4b. Evaluar CV con IA (solo si hay descripción en la oferta)
+                if (oferta.getDescripcion() != null && !oferta.getDescripcion().isBlank()) {
+                    try {
+                        log.info("Evaluando CV con IA...");
+                        ResultadoEvaluacionDTO evaluacion = geminiAiService.evaluarCvContraPerfil(
+                            cvFile, 
+                            construirPerfilOferta(oferta)
+                        );
+                        
+                        // Guardar resultados de evaluación
+                        postulacion.setCumpleRequerimientos(evaluacion.isCumpleRequerimientos());
+                        postulacion.setPorcentajeCoincidencia(evaluacion.getPorcentajeCoincidencia());
+                        postulacion.setResumenIa(evaluacion.getResumenEvaluacion());
+                        postulacion.setHabilidadesEncontradas(evaluacion.getHabilidadesEncontradas());
+                        
+                        log.info("Evaluación completada: {}% coincidencia", evaluacion.getPorcentajeCoincidencia());
+                    } catch (Exception e) {
+                        log.error("Error al evaluar CV con IA (continuando sin evaluación): {}", e.getMessage());
+                        // No lanzamos excepción, la postulación continúa sin evaluación IA
+                    }
+                } else {
+                    log.info("Oferta sin descripción, omitiendo evaluación con IA");
+                }
+                
+            } catch (Exception e) {
+                log.error("Error al procesar CV: {}", e.getMessage(), e);
+                throw new BusinessException("Error al procesar el archivo CV: " + e.getMessage());
+            }
+        } else {
+            log.warn("No se proporcionó archivo CV para la postulación");
+            // Usar URL del request si existe (compatibilidad con versión anterior)
+            postulacion.setCvUrl(request.getCvUrl());
+        }
+
+        // 5. Guardar postulación
         try {
             postulacion = postulacionRepository.saveAndFlush(postulacion);
+            log.info("Postulación creada exitosamente con ID: {}", postulacion.getUuid());
         } catch (DataIntegrityViolationException e) {
             throw new DuplicatePostulationException("El candidato ya tiene una postulacion activa para esta oferta.");
         }
 
+        // 6. Registrar historial y auditoría
         registrarHistorial(postulacion, null, EstadoPostulacion.ENVIADA, candidatoId, "Postulacion creada inicialmente");
         registrarAuditoria(candidatoId, "POSTULACION_CREADA", "Postulacion creada para oferta " + request.getOfertaId());
 
         return postulacionMapper.toResponse(postulacion);
+    }
+
+    /**
+     * Construye un perfil descriptivo de la oferta para la evaluación con IA
+     */
+    private String construirPerfilOferta(OfertaResumenDTO oferta) {
+        StringBuilder perfil = new StringBuilder();
+        perfil.append("TÍTULO DEL PUESTO: ").append(oferta.getTitulo()).append("\n\n");
+        
+        if (oferta.getDescripcion() != null) {
+            perfil.append("DESCRIPCIÓN:\n").append(oferta.getDescripcion()).append("\n\n");
+        }
+        
+        if (oferta.getAreaProfesional() != null) {
+            perfil.append("ÁREA PROFESIONAL: ").append(oferta.getAreaProfesional()).append("\n");
+        }
+        
+        if (oferta.getNivelExperiencia() != null) {
+            perfil.append("NIVEL DE EXPERIENCIA REQUERIDO: ").append(oferta.getNivelExperiencia()).append("\n");
+        }
+        
+        if (oferta.getModalidad() != null) {
+            perfil.append("MODALIDAD: ").append(oferta.getModalidad()).append("\n");
+        }
+        
+        return perfil.toString();
     }
 
     @Override

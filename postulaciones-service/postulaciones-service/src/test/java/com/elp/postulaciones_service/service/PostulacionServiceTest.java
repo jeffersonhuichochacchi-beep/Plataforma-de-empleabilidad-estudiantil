@@ -47,6 +47,10 @@ class PostulacionServiceTest {
     private OfertasClient ofertasClient;
     @Mock
     private UsuariosClient usuariosClient;
+    @Mock
+    private CloudinaryService cloudinaryService;
+    @Mock
+    private GeminiAiService geminiAiService;
 
     @InjectMocks
     private PostulacionServiceImpl postulacionService;
@@ -91,7 +95,7 @@ class PostulacionServiceTest {
         when(postulacionRepository.saveAndFlush(any(Postulacion.class))).thenReturn(guardada);
         when(postulacionMapper.toResponse(any())).thenReturn(new PostulacionResponse());
 
-        assertDoesNotThrow(() -> postulacionService.crearPostulacion(candidatoId, request));
+        assertDoesNotThrow(() -> postulacionService.crearPostulacion(candidatoId, request, null));
         verify(postulacionRepository).saveAndFlush(any(Postulacion.class));
     }
 
@@ -99,7 +103,7 @@ class PostulacionServiceTest {
     void crearPostulacionDuplicadaPreCheck() {
         when(postulacionRepository.existsByCandidatoIdAndOfertaId(candidatoId, ofertaId)).thenReturn(true);
 
-        assertThrows(DuplicatePostulationException.class, () -> postulacionService.crearPostulacion(candidatoId, request));
+        assertThrows(DuplicatePostulationException.class, () -> postulacionService.crearPostulacion(candidatoId, request, null));
     }
 
     @Test
@@ -114,7 +118,7 @@ class PostulacionServiceTest {
 
         when(postulacionRepository.saveAndFlush(any(Postulacion.class))).thenThrow(new DataIntegrityViolationException("Unique constraint"));
 
-        assertThrows(DuplicatePostulationException.class, () -> postulacionService.crearPostulacion(candidatoId, request));
+        assertThrows(DuplicatePostulationException.class, () -> postulacionService.crearPostulacion(candidatoId, request, null));
     }
 
     @Test
@@ -126,7 +130,7 @@ class PostulacionServiceTest {
         ofertaMock.setEstado("CERRADA");
         when(ofertasClient.validarOferta(eq(ofertaId), anyString())).thenReturn(ofertaMock);
 
-        assertThrows(BusinessException.class, () -> postulacionService.crearPostulacion(candidatoId, request));
+        assertThrows(BusinessException.class, () -> postulacionService.crearPostulacion(candidatoId, request, null));
     }
 
     @Test
@@ -139,6 +143,6 @@ class PostulacionServiceTest {
         ofertaMock.setEmpresaId(UUID.randomUUID()); // otra empresa
         when(ofertasClient.validarOferta(eq(ofertaId), anyString())).thenReturn(ofertaMock);
 
-        assertThrows(BusinessException.class, () -> postulacionService.crearPostulacion(candidatoId, request));
+        assertThrows(BusinessException.class, () -> postulacionService.crearPostulacion(candidatoId, request, null));
     }
 }
