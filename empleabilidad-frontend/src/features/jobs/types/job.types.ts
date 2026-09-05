@@ -81,22 +81,27 @@ export interface PostulacionResponse {
 }
 
 // Tipos para Evaluaciones
-export type RecomendacionEvaluacion = 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO';
+export type RecomendacionEvaluacion = 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO' | 'PENDIENTE';
 
 export interface EvaluacionRequest {
   puntaje: number;
   recomendacion: RecomendacionEvaluacion;
-  comentarios?: string;
+  comentario?: string;
+  fortalezas?: string;
+  debilidades?: string;
 }
 
 export interface EvaluacionResponse {
   id: string;
+  uuid: string;
   postulacionId: string;
   evaluadorId: string;
   evaluadorNombre?: string;
   puntaje: number;
   recomendacion: RecomendacionEvaluacion;
-  comentarios?: string;
+  comentario?: string;
+  fortalezas?: string;
+  debilidades?: string;
   fechaEvaluacion: string;
   fechaActualizacion?: string;
 }

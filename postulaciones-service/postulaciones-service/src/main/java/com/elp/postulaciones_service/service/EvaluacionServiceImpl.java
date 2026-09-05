@@ -119,10 +119,11 @@ public class EvaluacionServiceImpl implements EvaluacionService {
 
     private void validarPostulacionParaEvaluacion(Postulacion p) {
         EstadoPostulacion e = p.getEstado();
-        if (e == EstadoPostulacion.RECHAZADA || e == EstadoPostulacion.RETIRADA || 
-            e == EstadoPostulacion.CANCELADA || e == EstadoPostulacion.CERRADA) {
+        // Solo bloquear estados que ya no tienen sentido evaluar
+        if (e == EstadoPostulacion.RETIRADA || e == EstadoPostulacion.CANCELADA || e == EstadoPostulacion.CERRADA) {
             throw new BusinessException("No se pueden evaluar postulaciones que estan en estado " + e.name());
         }
+        // Permitir evaluar incluso RECHAZADA (para documentar razones) y todos los demás estados activos
     }
 
     private void validarAccesoEvaluacion(Postulacion p, UUID usuarioId, String rol) {

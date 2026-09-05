@@ -159,8 +159,10 @@ export const jobService = {
     postulacionId: string,
     payload: {
       puntaje: number;
-      recomendacion: 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO';
-      comentarios?: string;
+      recomendacion: RecomendacionEvaluacion;
+      comentario?: string;
+      fortalezas?: string;
+      debilidades?: string;
     }
   ): Promise<any> {
     const { data } = await postulacionesApi.post(
@@ -196,8 +198,10 @@ export const jobService = {
     evaluacionId: string,
     payload: {
       puntaje: number;
-      recomendacion: 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO';
-      comentarios?: string;
+      recomendacion: RecomendacionEvaluacion;
+      comentario?: string;
+      fortalezas?: string;
+      debilidades?: string;
     }
   ): Promise<any> {
     const { data } = await postulacionesApi.put(

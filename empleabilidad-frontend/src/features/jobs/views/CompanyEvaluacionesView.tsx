@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
-import type { PostulacionResponse, OfertaResponse, EvaluacionResponse } from '../types/job.types';
+import type { PostulacionResponse, OfertaResponse, EvaluacionResponse, RecomendacionEvaluacion } from '../types/job.types';
 import { Button } from '@/shared/components/Button';
 import toast from 'react-hot-toast';
 
@@ -21,7 +21,7 @@ export interface EvaluacionItem {
   candidatoFoto?: string;
   ofertaId: string;
   ofertaTitulo: string;
-  postulacionId: string;
+  postulacionId?: string;
   tipo: TipoEvaluacion;
   tituloPrueba: string;
   puntaje: number;
@@ -33,7 +33,7 @@ export interface EvaluacionItem {
   cumpleRequerimientos?: boolean;
   comentariosEvaluador?: string;
   nivelDificultad?: 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD';
-  recomendacion?: 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO';
+  recomendacion?: RecomendacionEvaluacion;
   evaluacionBackendId?: string; // ID de la evaluación en el backend
 }
 
@@ -127,8 +127,8 @@ export const CompanyEvaluacionesView: React.FC = () => {
               else estadoEval = 'EN_REVISION';
 
               allEvaluations.push({
-                id: `eval-backend-${backendEval.id}`,
-                evaluacionBackendId: backendEval.id,
+                id: `eval-backend-${backendEval.uuid || backendEval.id}`,
+                evaluacionBackendId: backendEval.uuid || backendEval.id,
                 candidatoId: app.candidatoId,
                 candidatoNombre: app.candidatoNombre || 'Candidato',
                 candidatoEmail: app.candidatoEmail || 'candidato@correo.com',
@@ -142,7 +142,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                 fechaRealizacion: backendEval.fechaEvaluacion || new Date().toISOString(),
                 duracionMinutos: 45,
                 habilidadesEvaluadas: ['Evaluación técnica', 'Competencias profesionales'],
-                comentariosEvaluador: backendEval.comentarios,
+                comentariosEvaluador: backendEval.comentario,
                 recomendacion: backendEval.recomendacion,
                 nivelDificultad: 'MID'
               });
@@ -231,7 +231,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
         await jobService.updateEvaluation(gradingTarget.evaluacionBackendId, {
           puntaje: gradeInput,
           recomendacion: gradeStatus,
-          comentarios: feedbackInput.trim()
+          comentario: feedbackInput.trim()
         });
 
         toast.success(`Evaluación actualizada en el servidor`);
@@ -279,8 +279,8 @@ export const CompanyEvaluacionesView: React.FC = () => {
       // Crear evaluación en el backend
       const response = await jobService.createEvaluation(newEvalPostulacionId, {
         puntaje: 0,
-        recomendacion: 'ACEPTABLE',
-        comentarios: 'Evaluación pendiente de calificación'
+        recomendacion: 'PENDIENTE',
+        comentario: 'Evaluación pendiente de calificación'
       });
 
       toast.success('Evaluación creada exitosamente');
@@ -292,8 +292,8 @@ export const CompanyEvaluacionesView: React.FC = () => {
       if (app) {
         const matchingJob = companyJobs.find(j => j.id === app.ofertaId);
         const newEval: EvaluacionItem = {
-          id: `eval-backend-${response.id}`,
-          evaluacionBackendId: response.id,
+          id: `eval-backend-${response.uuid || response.id}`,
+          evaluacionBackendId: response.uuid || response.id,
           candidatoId: app.candidatoId,
           candidatoNombre: app.candidatoNombre || 'Candidato',
           candidatoEmail: app.candidatoEmail || 'candidato@correo.com',
@@ -308,15 +308,21 @@ export const CompanyEvaluacionesView: React.FC = () => {
           duracionMinutos: 45,
           habilidadesEvaluadas: ['Pendiente de evaluación'],
           comentariosEvaluador: 'Evaluación pendiente de calificación',
-          recomendacion: 'ACEPTABLE',
+          recomendacion: 'PENDIENTE',
           nivelDificultad: 'MID'
         };
 
         setEvaluaciones(prev => [newEval, ...prev]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear evaluación:', error);
-      toast.error('Error al crear la evaluación');
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || 'Error al crear la evaluación';
+      toast.error(errorMsg);
+      
+      // Log adicional para debug
+      if (error?.response?.data) {
+        console.log('Detalles del error del servidor:', error.response.data);
+      }
     }
   };
 
@@ -676,7 +682,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                             onClick={() => {
                               setGradingTarget(item);
                               setGradeInput(item.puntaje);
-                              setGradeStatus(item.recomendacion || 'ACEPTABLE');
+                              setGradeStatus(item.recomendacion && item.recomendacion !== 'PENDIENTE' ? item.recomendacion : 'RECOMENDADO');
                               setFeedbackInput(item.comentariosEvaluador || '');
                             }}
                             className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center"
