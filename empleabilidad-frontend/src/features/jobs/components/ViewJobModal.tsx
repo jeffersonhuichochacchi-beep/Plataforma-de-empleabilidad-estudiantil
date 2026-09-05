@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { X, MapPin, Users, Calendar, Briefcase, ExternalLink } from 'lucide-react';
 import type { OfertaResponse } from '../types/job.types';
 
@@ -88,10 +89,20 @@ export const ViewJobModal: React.FC<ViewJobModalProps> = ({ job, onClose, onEdit
 
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
               <p className="text-xs text-slate-500 font-medium">Postulantes</p>
-              <p className="text-base font-bold text-slate-900 mt-0.5 flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-blue-600" />
-                {job.numeroPostulaciones ?? 0}
-              </p>
+              <Link 
+                to={`/empresa/candidatos?ofertaId=${job.id}`}
+                onClick={onClose}
+                className="text-base font-bold text-slate-900 mt-0.5 flex items-center gap-1.5 hover:text-blue-600 transition-colors group cursor-pointer"
+                title="Ver postulantes de esta oferta"
+              >
+                <Users className="h-4 w-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-bold">
+                  {job.numeroPostulaciones ?? 0}
+                </span>
+                {(job.numeroPostulaciones ?? 0) > 0 && (
+                  <span className="text-xs font-medium text-blue-600 underline ml-1">Ver lista</span>
+                )}
+              </Link>
             </div>
 
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">

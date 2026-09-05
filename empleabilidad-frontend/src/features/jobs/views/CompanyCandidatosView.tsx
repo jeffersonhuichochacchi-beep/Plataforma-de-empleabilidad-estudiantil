@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Users, Search, RefreshCw, FileText, ExternalLink, 
   CheckCircle2, XCircle, Clock, Eye, Briefcase, Mail, 
@@ -40,6 +41,9 @@ const NEXT_STATUSES: Record<EstadoPostulacion, EstadoPostulacion[]> = {
 
 export const CompanyCandidatosView: React.FC = () => {
   const { user } = useAuthStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlOfertaId = searchParams.get('ofertaId');
+
   const [postulaciones, setPostulaciones] = useState<PostulacionResponse[]>([]);
   const [companyJobs, setCompanyJobs] = useState<OfertaResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +52,13 @@ export const CompanyCandidatosView: React.FC = () => {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstado, setSelectedEstado] = useState<string>('TODOS');
-  const [selectedOfertaId, setSelectedOfertaId] = useState<string>('TODAS');
+  const [selectedOfertaId, setSelectedOfertaId] = useState<string>(urlOfertaId || 'TODAS');
+
+  useEffect(() => {
+    if (urlOfertaId) {
+      setSelectedOfertaId(urlOfertaId);
+    }
+  }, [urlOfertaId]);
 
   // Modal Detail & Status Change
   const [selectedPostulacion, setSelectedPostulacion] = useState<PostulacionResponse | null>(null);
@@ -288,7 +298,15 @@ export const CompanyCandidatosView: React.FC = () => {
               <span className="text-xs font-medium text-slate-500 whitespace-nowrap">Oferta:</span>
               <select
                 value={selectedOfertaId}
-                onChange={(e) => setSelectedOfertaId(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedOfertaId(val);
+                  if (val !== 'TODAS') {
+                    setSearchParams({ ofertaId: val });
+                  } else {
+                    setSearchParams({});
+                  }
+                }}
                 className="text-xs font-medium py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-700"
               >
                 <option value="TODAS">Todas las ofertas ({companyJobs.length})</option>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Briefcase, MapPin, Users, Edit, Trash2, Eye, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
@@ -26,9 +27,49 @@ export const CompanyOfertasView: React.FC = () => {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      // Por defecto el backend retorna las ofertas de la empresa
-      const data = await jobService.getCompanyJobs(user.id, { size: 20 });
-      setJobsData(data);
+      // 1. Obtener ofertas y postulaciones en paralelo
+      const [jobsRes, appsRes] = await Promise.allSettled([
+        jobService.getCompanyJobs(user.id, { size: 50 }),
+        jobService.getCompanyApplications({ empresaId: user.id, size: 100 }),
+      ]);
+
+      const jobsDataResult = jobsRes.status === 'fulfilled' ? jobsRes.value : null;
+      let allApps = appsRes.status === 'fulfilled' ? (appsRes.value.content || []) : [];
+
+      // Si hay más de 1 página de postulaciones, recuperar páginas adicionales
+      if (appsRes.status === 'fulfilled' && appsRes.value.totalPages > 1) {
+        const remainingPages = [];
+        for (let p = 1; p < appsRes.value.totalPages; p++) {
+          remainingPages.push(
+            jobService.getCompanyApplications({ empresaId: user.id, page: p, size: 100 })
+              .then(res => res.content || [])
+              .catch(() => [])
+          );
+        }
+        const extraApps = await Promise.all(remainingPages);
+        allApps = allApps.concat(extraApps.flat());
+      }
+
+      if (jobsDataResult) {
+        // Conteo de postulantes reales por id de oferta
+        const countsByJob: Record<string, number> = {};
+        allApps.forEach((app) => {
+          if (app.ofertaId) {
+            countsByJob[app.ofertaId] = (countsByJob[app.ofertaId] || 0) + 1;
+          }
+        });
+
+        // Asignar el número real de postulantes a cada oferta
+        const updatedContent = jobsDataResult.content.map((job) => ({
+          ...job,
+          numeroPostulaciones: countsByJob[job.id] ?? 0,
+        }));
+
+        setJobsData({
+          ...jobsDataResult,
+          content: updatedContent,
+        });
+      }
     } catch (error) {
       console.error('Error fetching company jobs:', error);
     } finally {
@@ -118,10 +159,28 @@ export const CompanyOfertasView: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 font-medium">{job.modalidad?.replace('_', ' ')}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 font-medium text-slate-900">
-                        <Users className="h-4 w-4 text-slate-400" />
-                        {job.numeroPostulaciones ?? 0}
-                      </div>
+                      <Link
+                        to={`/empresa/candidatos?ofertaId=${job.id}`}
+                        className="inline-flex items-center gap-1.5 font-medium group transition-colors"
+                        title={
+                          (job.numeroPostulaciones ?? 0) > 0
+                            ? `Ver ${job.numeroPostulaciones} postulante(s) de esta oferta`
+                            : 'Ver candidatos de esta oferta'
+                        }
+                      >
+                        <Users className={`h-4 w-4 transition-colors ${
+                          (job.numeroPostulaciones ?? 0) > 0 
+                            ? 'text-blue-600 group-hover:text-blue-700' 
+                            : 'text-slate-400 group-hover:text-slate-600'
+                        }`} />
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold transition-all ${
+                          (job.numeroPostulaciones ?? 0) > 0 
+                            ? 'bg-blue-100 text-blue-800 group-hover:bg-blue-200 group-hover:scale-105' 
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                        }`}>
+                          {job.numeroPostulaciones ?? 0}
+                        </span>
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
                       {/* Botón de reenvío si fue rechazada o borrador */}
