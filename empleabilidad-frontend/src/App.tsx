@@ -16,6 +16,7 @@ import { EmpleosView } from './features/jobs/views/EmpleosView';
 import { JobDetailView } from './features/jobs/views/JobDetailView';
 import { CompanyOfertasView } from './features/jobs/views/CompanyOfertasView';
 import { CompanyCandidatosView } from './features/jobs/views/CompanyCandidatosView';
+import { CompanyEvaluacionesView } from './features/jobs/views/CompanyEvaluacionesView';
 import { CandidateSearchView } from './features/jobs/views/CandidateSearchView';
 import { ProfileOnboardingView } from './features/profile/views/ProfileOnboardingView';
 import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
@@ -76,8 +77,6 @@ const EmpresasPublicas = () => <div className="p-8"><h1 className="text-3xl font
 const CandidatoPostulaciones = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Mis Postulaciones</h1><p className="text-slate-500 mt-2">Haz seguimiento al estado de tus procesos.</p></div>;
 const CandidatoEntrevistas = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Mis Entrevistas</h1><p className="text-slate-500 mt-2">Organiza y prepárate para tus próximas citas.</p></div>;
 
-// --- VISTAS PROTEGIDAS (EMPRESA) ---
-const EmpresaEvaluaciones = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Evaluaciones Técnicas</h1><p className="text-slate-500 mt-2">Revisa las pruebas enviadas a los postulantes.</p></div>;
 
 function App() {
   return (
@@ -153,7 +152,7 @@ function App() {
               <Route index element={<Navigate to="ofertas" replace />} />
               <Route path="ofertas" element={<CompanyOfertasView />} />
               <Route path="candidatos" element={<CompanyCandidatosView />} />
-              <Route path="evaluaciones" element={<EmpresaEvaluaciones />} />
+              <Route path="evaluaciones" element={<CompanyEvaluacionesView />} />
               <Route path="perfil" element={<ProfileOnboardingView />} />
             </Route>
 
