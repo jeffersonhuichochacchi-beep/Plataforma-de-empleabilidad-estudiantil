@@ -19,6 +19,7 @@ import { CompanyCandidatosView } from './features/jobs/views/CompanyCandidatosVi
 import { CompanyEvaluacionesView } from './features/jobs/views/CompanyEvaluacionesView';
 import { CandidateSearchView } from './features/jobs/views/CandidateSearchView';
 import { ProfileOnboardingView } from './features/profile/views/ProfileOnboardingView';
+import { CompanyProfileView } from './features/profile/views/CompanyProfileView';
 import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
 import { AdminOfertasView } from './features/admin/views/AdminOfertasView';
 
@@ -153,7 +154,7 @@ function App() {
               <Route path="ofertas" element={<CompanyOfertasView />} />
               <Route path="candidatos" element={<CompanyCandidatosView />} />
               <Route path="evaluaciones" element={<CompanyEvaluacionesView />} />
-              <Route path="perfil" element={<ProfileOnboardingView />} />
+              <Route path="perfil" element={<CompanyProfileView />} />
             </Route>
 
           </Route>
