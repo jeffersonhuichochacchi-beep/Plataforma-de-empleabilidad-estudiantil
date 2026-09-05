@@ -151,4 +151,59 @@ export const jobService = {
   async deleteApplication(uuid: string): Promise<void> {
     await postulacionesApi.delete(`/postulaciones/${uuid}`);
   },
+
+  // === EVALUACIONES ===
+  
+  // Crear evaluación para una postulación
+  async createEvaluation(
+    postulacionId: string,
+    payload: {
+      puntaje: number;
+      recomendacion: 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO';
+      comentarios?: string;
+    }
+  ): Promise<any> {
+    const { data } = await postulacionesApi.post(
+      `/postulaciones/${postulacionId}/evaluaciones`,
+      payload
+    );
+    return data;
+  },
+
+  // Listar evaluaciones de una postulación
+  async getEvaluationsByApplication(
+    postulacionId: string,
+    params?: {
+      page?: number;
+      size?: number;
+    }
+  ): Promise<PageResponse<any>> {
+    const { data } = await postulacionesApi.get(
+      `/postulaciones/${postulacionId}/evaluaciones`,
+      { params }
+    );
+    return data;
+  },
+
+  // Obtener una evaluación específica
+  async getEvaluationById(evaluacionId: string): Promise<any> {
+    const { data } = await postulacionesApi.get(`/evaluaciones/${evaluacionId}`);
+    return data;
+  },
+
+  // Actualizar una evaluación
+  async updateEvaluation(
+    evaluacionId: string,
+    payload: {
+      puntaje: number;
+      recomendacion: 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO';
+      comentarios?: string;
+    }
+  ): Promise<any> {
+    const { data } = await postulacionesApi.put(
+      `/evaluaciones/${evaluacionId}`,
+      payload
+    );
+    return data;
+  },
 };

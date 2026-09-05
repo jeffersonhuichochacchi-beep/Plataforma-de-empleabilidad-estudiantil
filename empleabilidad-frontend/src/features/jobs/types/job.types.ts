@@ -79,3 +79,24 @@ export interface PostulacionResponse {
   resumenIa?: string;
   habilidadesEncontradas?: string;
 }
+
+// Tipos para Evaluaciones
+export type RecomendacionEvaluacion = 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO';
+
+export interface EvaluacionRequest {
+  puntaje: number;
+  recomendacion: RecomendacionEvaluacion;
+  comentarios?: string;
+}
+
+export interface EvaluacionResponse {
+  id: string;
+  postulacionId: string;
+  evaluadorId: string;
+  evaluadorNombre?: string;
+  puntaje: number;
+  recomendacion: RecomendacionEvaluacion;
+  comentarios?: string;
+  fechaEvaluacion: string;
+  fechaActualizacion?: string;
+}

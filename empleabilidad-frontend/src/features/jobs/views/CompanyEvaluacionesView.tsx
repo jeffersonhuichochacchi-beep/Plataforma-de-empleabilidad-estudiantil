@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   CheckSquare, Sparkles, Award, Clock, Search, 
   Plus, Eye, Edit3, CheckCircle2, X, Briefcase, 
-  BarChart3, Download, RefreshCw
+  BarChart3, Download, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
-import type { PostulacionResponse, OfertaResponse } from '../types/job.types';
+import type { PostulacionResponse, OfertaResponse, EvaluacionResponse } from '../types/job.types';
 import { Button } from '@/shared/components/Button';
 import toast from 'react-hot-toast';
 
@@ -21,9 +21,10 @@ export interface EvaluacionItem {
   candidatoFoto?: string;
   ofertaId: string;
   ofertaTitulo: string;
+  postulacionId: string;
   tipo: TipoEvaluacion;
   tituloPrueba: string;
-  puntaje: number; // 0 - 100
+  puntaje: number;
   estado: EstadoEvaluacion;
   fechaRealizacion: string;
   duracionMinutos?: number;
@@ -32,6 +33,8 @@ export interface EvaluacionItem {
   cumpleRequerimientos?: boolean;
   comentariosEvaluador?: string;
   nivelDificultad?: 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD';
+  recomendacion?: 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO';
+  evaluacionBackendId?: string; // ID de la evaluación en el backend
 }
 
 export const CompanyEvaluacionesView: React.FC = () => {
@@ -39,6 +42,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [companyJobs, setCompanyJobs] = useState<OfertaResponse[]>([]);
   const [evaluaciones, setEvaluaciones] = useState<EvaluacionItem[]>([]);
+  const [postulaciones, setPostulaciones] = useState<PostulacionResponse[]>([]);
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,148 +56,131 @@ export const CompanyEvaluacionesView: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [gradingTarget, setGradingTarget] = useState<EvaluacionItem | null>(null);
   const [gradeInput, setGradeInput] = useState<number>(85);
-  const [gradeStatus, setGradeStatus] = useState<EstadoEvaluacion>('APROBADO');
+  const [gradeStatus, setGradeStatus] = useState<'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO'>('RECOMENDADO');
   const [feedbackInput, setFeedbackInput] = useState('');
 
   // Formulario de nueva evaluación
-  const [newEvalCandidate, setNewEvalCandidate] = useState('');
-  const [newEvalCandidateEmail, setNewEvalCandidateEmail] = useState('');
-  const [newEvalJobId, setNewEvalJobId] = useState('');
+  const [newEvalPostulacionId, setNewEvalPostulacionId] = useState('');
   const [newEvalTipo, setNewEvalTipo] = useState<TipoEvaluacion>('PRUEBA_TECNICA');
-  const [newEvalTitle, setNewEvalTitle] = useState('');
-  const [newEvalDifficulty, setNewEvalDifficulty] = useState<'JUNIOR' | 'MID' | 'SENIOR'>('MID');
-  const [newEvalSkills, setNewEvalSkills] = useState('React, TypeScript, Tailwind');
 
-  // Cargar datos reales de ofertas y candidatos con IA de la empresa
+  // Cargar datos reales del backend
   useEffect(() => {
     const loadCompanyData = async () => {
       if (!user?.id) return;
       setLoading(true);
       try {
-        const [jobsRes, appsRes] = await Promise.allSettled([
-          jobService.getCompanyJobs(user.id, { size: 50 }),
-          jobService.getCompanyApplications({ empresaId: user.id, size: 100 })
-        ]);
-
-        const jobs = jobsRes.status === 'fulfilled' ? (jobsRes.value.content || []) : [];
-        const apps = appsRes.status === 'fulfilled' ? (appsRes.value.content || []) : [];
-
+        // 1. Cargar ofertas de la empresa
+        const jobsRes = await jobService.getCompanyJobs(user.id, { size: 50 });
+        const jobs = jobsRes.content || [];
         setCompanyJobs(jobs);
 
-        // Convertir aplicaciones reales en evaluaciones de IA y técnicas
-        const realEvaluations: EvaluacionItem[] = [];
+        // 2. Cargar postulaciones de la empresa
+        const appsRes = await jobService.getCompanyApplications({ empresaId: user.id, size: 100 });
+        const apps = appsRes.content || [];
+        setPostulaciones(apps);
 
-        apps.forEach((app: PostulacionResponse, index: number) => {
+        // 3. Convertir postulaciones en evaluaciones (Screening IA)
+        const allEvaluations: EvaluacionItem[] = [];
+
+        for (const app of apps) {
           const matchingJob = jobs.find(j => j.id === app.ofertaId);
           const jobTitle = app.ofertaTitulo || matchingJob?.titulo || 'Desarrollador Full Stack';
 
-          // Evaluación IA proveniente del screening del CV
-          const aiScore = app.porcentajeCoincidencia ?? 88;
-          const habilidades = app.habilidadesEncontradas 
-            ? app.habilidadesEncontradas.split(',').map(s => s.trim()) 
-            : ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Git'];
+          // Evaluación IA proveniente del screening del CV (siempre existe si hay porcentajeCoincidencia)
+          if (app.porcentajeCoincidencia !== undefined && app.porcentajeCoincidencia !== null) {
+            const aiScore = app.porcentajeCoincidencia;
+            const habilidades = app.habilidadesEncontradas 
+              ? app.habilidadesEncontradas.split(',').map(s => s.trim()) 
+              : ['React', 'TypeScript', 'Node.js'];
 
-          realEvaluations.push({
-            id: `eval-ia-${app.uuid || app.id || index}`,
-            candidatoId: app.candidatoId,
-            candidatoNombre: app.candidatoNombre || 'Candidato Postulante',
-            candidatoEmail: app.candidatoEmail || 'candidato@correo.com',
-            ofertaId: app.ofertaId,
-            ofertaTitulo: jobTitle,
-            tipo: 'IA_SCREENING',
-            tituloPrueba: 'Screening y Match de CV (Gemini IA)',
-            puntaje: aiScore,
-            estado: aiScore >= 75 ? 'APROBADO' : aiScore >= 50 ? 'EN_REVISION' : 'DESCALIFICADO',
-            fechaRealizacion: app.fechaPostulacion || new Date().toISOString(),
-            duracionMinutos: 2,
-            habilidadesEvaluadas: habilidades,
-            resumenIa: app.resumenIa || 'El candidato cumple con el perfil técnico solicitado para la posición, destacando en desarrollo de interfaces y lógica de backend.',
-            cumpleRequerimientos: app.cumpleRequerimientos ?? (aiScore >= 70),
-            nivelDificultad: 'MID'
-          });
-
-          // También agregar prueba técnica asociada
-          realEvaluations.push({
-            id: `eval-tech-${app.uuid || app.id || index}`,
-            candidatoId: app.candidatoId,
-            candidatoNombre: app.candidatoNombre || 'Candidato Postulante',
-            candidatoEmail: app.candidatoEmail || 'candidato@correo.com',
-            ofertaId: app.ofertaId,
-            ofertaTitulo: jobTitle,
-            tipo: 'PRUEBA_TECNICA',
-            tituloPrueba: `Desafío Práctico: Arquitectura ${jobTitle.includes('React') ? 'Frontend' : 'Software'}`,
-            puntaje: Math.min(100, Math.max(60, aiScore + 5)),
-            estado: 'COMPLETADA',
-            fechaRealizacion: new Date(Date.now() - 86400000).toISOString(),
-            duracionMinutos: 45,
-            habilidadesEvaluadas: ['Clean Code', 'API REST', 'Component Architecture', 'Testing'],
-            comentariosEvaluador: 'Excelente manejo de patrones de diseño, código modular y buenas prácticas de seguridad.',
-            nivelDificultad: 'MID'
-          });
-        });
-
-        // Si no hay candidatos aún, incluir demostraciones ricas
-        if (realEvaluations.length === 0) {
-          realEvaluations.push(
-            {
-              id: 'demo-1',
-              candidatoId: 'cand-1',
-              candidatoNombre: 'Jefferson Huicho',
-              candidatoEmail: 'jefferson.huicho@ejemplo.com',
-              ofertaId: jobs[0]?.id || 'job-1',
-              ofertaTitulo: jobs[0]?.titulo || 'Desarrollador Full Stack React y Node.js',
+            allEvaluations.push({
+              id: `eval-ia-${app.uuid || app.id}`,
+              candidatoId: app.candidatoId,
+              candidatoNombre: app.candidatoNombre || 'Candidato Postulante',
+              candidatoEmail: app.candidatoEmail || 'candidato@correo.com',
+              ofertaId: app.ofertaId,
+              ofertaTitulo: jobTitle,
+              postulacionId: app.uuid || app.id,
               tipo: 'IA_SCREENING',
               tituloPrueba: 'Screening y Match de CV (Gemini IA)',
-              puntaje: 94,
+              puntaje: aiScore,
+              estado: aiScore >= 75 ? 'APROBADO' : aiScore >= 50 ? 'EN_REVISION' : 'DESCALIFICADO',
+              fechaRealizacion: app.fechaPostulacion || new Date().toISOString(),
+              duracionMinutos: 2,
+              habilidadesEvaluadas: habilidades,
+              resumenIa: app.resumenIa || 'Evaluación automática de coincidencia con el perfil solicitado.',
+              cumpleRequerimientos: app.cumpleRequerimientos ?? (aiScore >= 70),
+              nivelDificultad: 'MID'
+            });
+          }
+
+          // 4. Cargar evaluaciones manuales del backend para esta postulación
+          try {
+            const evalRes = await jobService.getEvaluationsByApplication(app.uuid || app.id, { size: 10 });
+            const backendEvals = evalRes.content || [];
+
+            for (const backendEval of backendEvals) {
+              // Convertir recomendación a estado
+              let estadoEval: EstadoEvaluacion = 'COMPLETADA';
+              if (backendEval.recomendacion === 'RECOMENDADO') estadoEval = 'APROBADO';
+              else if (backendEval.recomendacion === 'NO_RECOMENDADO') estadoEval = 'DESCALIFICADO';
+              else estadoEval = 'EN_REVISION';
+
+              allEvaluations.push({
+                id: `eval-backend-${backendEval.id}`,
+                evaluacionBackendId: backendEval.id,
+                candidatoId: app.candidatoId,
+                candidatoNombre: app.candidatoNombre || 'Candidato',
+                candidatoEmail: app.candidatoEmail || 'candidato@correo.com',
+                ofertaId: app.ofertaId,
+                ofertaTitulo: jobTitle,
+                postulacionId: app.uuid || app.id,
+                tipo: 'PRUEBA_TECNICA', // Por defecto, podríamos agregar un campo en el backend
+                tituloPrueba: 'Evaluación Técnica',
+                puntaje: backendEval.puntaje,
+                estado: estadoEval,
+                fechaRealizacion: backendEval.fechaEvaluacion || new Date().toISOString(),
+                duracionMinutos: 45,
+                habilidadesEvaluadas: ['Evaluación técnica', 'Competencias profesionales'],
+                comentariosEvaluador: backendEval.comentarios,
+                recomendacion: backendEval.recomendacion,
+                nivelDificultad: 'MID'
+              });
+            }
+          } catch (error) {
+            console.log(`No se pudieron cargar evaluaciones para postulación ${app.uuid}`);
+          }
+        }
+
+        // Si no hay evaluaciones, agregar datos de demostración
+        if (allEvaluations.length === 0 && jobs.length > 0) {
+          allEvaluations.push(
+            {
+              id: 'demo-1',
+              candidatoId: 'cand-demo-1',
+              candidatoNombre: 'Demo - Candidato Ejemplo',
+              candidatoEmail: 'demo@ejemplo.com',
+              ofertaId: jobs[0]?.id || 'job-1',
+              ofertaTitulo: jobs[0]?.titulo || 'Desarrollador Full Stack',
+              postulacionId: 'demo-post-1',
+              tipo: 'IA_SCREENING',
+              tituloPrueba: 'Screening con IA (Demo)',
+              puntaje: 88,
               estado: 'APROBADO',
               fechaRealizacion: new Date().toISOString(),
               duracionMinutos: 2,
-              habilidadesEvaluadas: ['React', 'Node.js', 'PostgreSQL', 'Docker', 'REST APIs'],
-              resumenIa: 'Candidato altamente compatible con el stack tecnológico de la oferta. Muestra sólida trayectoria en microservicios y React.',
+              habilidadesEvaluadas: ['React', 'Node.js', 'PostgreSQL'],
+              resumenIa: 'Este es un candidato de demostración. Postula candidatos reales para ver evaluaciones.',
               cumpleRequerimientos: true,
-              nivelDificultad: 'MID'
-            },
-            {
-              id: 'demo-2',
-              candidatoId: 'cand-2',
-              candidatoNombre: 'María Elena Salazar',
-              candidatoEmail: 'maria.salazar@ejemplo.com',
-              ofertaId: jobs[0]?.id || 'job-1',
-              ofertaTitulo: jobs[0]?.titulo || 'Desarrollador Full Stack React y Node.js',
-              tipo: 'PRUEBA_TECNICA',
-              tituloPrueba: 'Evaluación Técnica de Frontend React 19',
-              puntaje: 88,
-              estado: 'APROBADO',
-              fechaRealizacion: new Date(Date.now() - 172800000).toISOString(),
-              duracionMinutos: 60,
-              habilidadesEvaluadas: ['React Hooks', 'Zustand', 'CSS Avanzado', 'TypeScript'],
-              comentariosEvaluador: 'Dominio destacado de hooks avanzados y diseño responsive impecable.',
-              nivelDificultad: 'SENIOR'
-            },
-            {
-              id: 'demo-3',
-              candidatoId: 'cand-3',
-              candidatoNombre: 'Carlos Andrés Vega',
-              candidatoEmail: 'carlos.vega@ejemplo.com',
-              ofertaId: jobs[0]?.id || 'job-1',
-              ofertaTitulo: jobs[0]?.titulo || 'Desarrollador Full Stack React y Node.js',
-              tipo: 'PSICOMETRICO',
-              tituloPrueba: 'Prueba de Habilidades Blandas y Trabajo en Equipo',
-              puntaje: 82,
-              estado: 'COMPLETADA',
-              fechaRealizacion: new Date(Date.now() - 259200000).toISOString(),
-              duracionMinutos: 30,
-              habilidadesEvaluadas: ['Comunicación asertiva', 'Liderazgo técnico', 'Resolución de conflictos'],
-              comentariosEvaluador: 'Perfil proactivo con alta afinidad a metodologías ágiles.',
               nivelDificultad: 'MID'
             }
           );
         }
 
-        setEvaluaciones(realEvaluations);
+        setEvaluaciones(allEvaluations);
       } catch (error) {
         console.error('Error al cargar evaluaciones:', error);
-        toast.error('No se pudieron cargar todas las evaluaciones.');
+        toast.error('Error al cargar las evaluaciones');
       } finally {
         setLoading(false);
       }
@@ -217,23 +204,11 @@ export const CompanyEvaluacionesView: React.FC = () => {
   // Filtros aplicados
   const filteredEvaluaciones = useMemo(() => {
     return evaluaciones.filter(item => {
-      // Filtro por Tab
-      if (activeTab !== 'TODAS' && item.tipo !== activeTab) {
-        return false;
-      }
-      // Filtro por Tipo de select
-      if (selectedTipo !== 'TODOS' && item.tipo !== selectedTipo) {
-        return false;
-      }
-      // Filtro por Estado
-      if (selectedEstado !== 'TODOS' && item.estado !== selectedEstado) {
-        return false;
-      }
-      // Filtro por Oferta
-      if (selectedOfertaId !== 'TODAS' && item.ofertaId !== selectedOfertaId) {
-        return false;
-      }
-      // Búsqueda por texto
+      if (activeTab !== 'TODAS' && item.tipo !== activeTab) return false;
+      if (selectedTipo !== 'TODOS' && item.tipo !== selectedTipo) return false;
+      if (selectedEstado !== 'TODOS' && item.estado !== selectedEstado) return false;
+      if (selectedOfertaId !== 'TODAS' && item.ofertaId !== selectedOfertaId) return false;
+      
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
         const cand = item.candidatoNombre.toLowerCase();
@@ -247,61 +222,102 @@ export const CompanyEvaluacionesView: React.FC = () => {
   }, [evaluaciones, activeTab, selectedTipo, selectedEstado, selectedOfertaId, searchTerm]);
 
   // Manejador para Calificar / Actualizar Nota
-  const handleSaveGrade = () => {
+  const handleSaveGrade = async () => {
     if (!gradingTarget) return;
 
-    setEvaluaciones(prev => prev.map(item => {
-      if (item.id === gradingTarget.id) {
-        return {
-          ...item,
+    try {
+      // Si tiene evaluacionBackendId, actualizar en el backend
+      if (gradingTarget.evaluacionBackendId) {
+        await jobService.updateEvaluation(gradingTarget.evaluacionBackendId, {
           puntaje: gradeInput,
-          estado: gradeStatus,
-          comentariosEvaluador: feedbackInput.trim() || item.comentariosEvaluador
-        };
-      }
-      return item;
-    }));
+          recomendacion: gradeStatus,
+          comentarios: feedbackInput.trim()
+        });
 
-    toast.success(`Evaluación de ${gradingTarget.candidatoNombre} actualizada con ${gradeInput} puntos.`);
-    setGradingTarget(null);
+        toast.success(`Evaluación actualizada en el servidor`);
+      } else {
+        // Si es evaluación IA (sin backend ID), solo actualizar localmente
+        toast.success(`Calificación actualizada localmente`);
+      }
+
+      // Actualizar estado local
+      setEvaluaciones(prev => prev.map(item => {
+        if (item.id === gradingTarget.id) {
+          let nuevoEstado: EstadoEvaluacion = 'COMPLETADA';
+          if (gradeStatus === 'RECOMENDADO') nuevoEstado = 'APROBADO';
+          else if (gradeStatus === 'NO_RECOMENDADO') nuevoEstado = 'DESCALIFICADO';
+          else nuevoEstado = 'EN_REVISION';
+
+          return {
+            ...item,
+            puntaje: gradeInput,
+            estado: nuevoEstado,
+            recomendacion: gradeStatus,
+            comentariosEvaluador: feedbackInput.trim() || item.comentariosEvaluador
+          };
+        }
+        return item;
+      }));
+
+      setGradingTarget(null);
+    } catch (error) {
+      console.error('Error al guardar evaluación:', error);
+      toast.error('Error al guardar la evaluación');
+    }
   };
 
   // Manejador para Crear / Asignar Evaluación
-  const handleCreateEvaluation = (e: React.FormEvent) => {
+  const handleCreateEvaluation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEvalCandidate.trim() || !newEvalTitle.trim()) {
-      toast.error('Por favor completa el nombre del candidato y el título de la evaluación.');
+    
+    if (!newEvalPostulacionId) {
+      toast.error('Por favor selecciona una postulación');
       return;
     }
 
-    const matchingJob = companyJobs.find(j => j.id === newEvalJobId) || companyJobs[0];
-    const newId = `custom-${Date.now()}`;
+    try {
+      // Crear evaluación en el backend
+      const response = await jobService.createEvaluation(newEvalPostulacionId, {
+        puntaje: 0,
+        recomendacion: 'ACEPTABLE',
+        comentarios: 'Evaluación pendiente de calificación'
+      });
 
-    const newEval: EvaluacionItem = {
-      id: newId,
-      candidatoId: `cand-${Date.now()}`,
-      candidatoNombre: newEvalCandidate.trim(),
-      candidatoEmail: newEvalCandidateEmail.trim() || 'candidato@correo.com',
-      ofertaId: matchingJob?.id || 'oferta-1',
-      ofertaTitulo: matchingJob?.titulo || 'Oferta Laboral',
-      tipo: newEvalTipo,
-      tituloPrueba: newEvalTitle.trim(),
-      puntaje: 0,
-      estado: 'EN_PROGRESO',
-      fechaRealizacion: new Date().toISOString(),
-      duracionMinutos: 45,
-      habilidadesEvaluadas: newEvalSkills.split(',').map(s => s.trim()).filter(Boolean),
-      nivelDificultad: newEvalDifficulty
-    };
+      toast.success('Evaluación creada exitosamente');
+      setIsCreateModalOpen(false);
+      setNewEvalPostulacionId('');
 
-    setEvaluaciones(prev => [newEval, ...prev]);
-    toast.success('Evaluación asignada exitosamente al candidato.');
-    setIsCreateModalOpen(false);
+      // Recargar evaluaciones
+      const app = postulaciones.find(p => p.uuid === newEvalPostulacionId || p.id === newEvalPostulacionId);
+      if (app) {
+        const matchingJob = companyJobs.find(j => j.id === app.ofertaId);
+        const newEval: EvaluacionItem = {
+          id: `eval-backend-${response.id}`,
+          evaluacionBackendId: response.id,
+          candidatoId: app.candidatoId,
+          candidatoNombre: app.candidatoNombre || 'Candidato',
+          candidatoEmail: app.candidatoEmail || 'candidato@correo.com',
+          ofertaId: app.ofertaId,
+          ofertaTitulo: app.ofertaTitulo || matchingJob?.titulo || 'Oferta',
+          postulacionId: newEvalPostulacionId,
+          tipo: newEvalTipo,
+          tituloPrueba: 'Evaluación Técnica',
+          puntaje: 0,
+          estado: 'EN_PROGRESO',
+          fechaRealizacion: new Date().toISOString(),
+          duracionMinutos: 45,
+          habilidadesEvaluadas: ['Pendiente de evaluación'],
+          comentariosEvaluador: 'Evaluación pendiente de calificación',
+          recomendacion: 'ACEPTABLE',
+          nivelDificultad: 'MID'
+        };
 
-    // Reset
-    setNewEvalCandidate('');
-    setNewEvalCandidateEmail('');
-    setNewEvalTitle('');
+        setEvaluaciones(prev => [newEval, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error al crear evaluación:', error);
+      toast.error('Error al crear la evaluación');
+    }
   };
 
   const getTipoBadge = (tipo: TipoEvaluacion) => {
@@ -375,6 +391,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
             className="gap-2 shadow-md shadow-blue-600/20 bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={postulaciones.length === 0}
           >
             <Plus className="h-4 w-4" />
             Asignar Nueva Evaluación
@@ -384,7 +401,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
 
       {/* Tarjetas de Métricas Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Total Evaluaciones */}
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
             <CheckSquare className="h-6 w-6" />
@@ -395,7 +411,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. IA Screening Match */}
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
             <Sparkles className="h-6 w-6" />
@@ -406,7 +421,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. Aprobados / Sobresalientes */}
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
             <CheckCircle2 className="h-6 w-6" />
@@ -417,7 +431,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
           </div>
         </div>
 
-        {/* 4. Calificación Promedio */}
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
             <BarChart3 className="h-6 w-6" />
@@ -472,13 +485,12 @@ export const CompanyEvaluacionesView: React.FC = () => {
           }`}
         >
           <Award className="h-3.5 w-3.5 text-amber-600" />
-          Psicométricos y Habilidades ({evaluaciones.filter(e => e.tipo === 'PSICOMETRICO').length})
+          Psicométricos ({evaluaciones.filter(e => e.tipo === 'PSICOMETRICO').length})
         </button>
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Buscador */}
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
@@ -490,9 +502,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
           />
         </div>
 
-        {/* Filtros Select */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Tipo */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-slate-500 whitespace-nowrap">Tipo:</span>
             <select
@@ -508,7 +518,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
             </select>
           </div>
 
-          {/* Oferta */}
           {companyJobs.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-slate-500 whitespace-nowrap">Oferta:</span>
@@ -525,7 +534,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
             </div>
           )}
 
-          {/* Estado */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-slate-500 whitespace-nowrap">Resultado:</span>
             <select
@@ -554,13 +562,17 @@ export const CompanyEvaluacionesView: React.FC = () => {
         ) : filteredEvaluaciones.length === 0 ? (
           <div className="p-16 text-center">
             <div className="h-16 w-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckSquare className="h-8 w-8" />
+              <AlertCircle className="h-8 w-8" />
             </div>
             <h3 className="text-base font-bold text-slate-800 mb-1">No se encontraron evaluaciones</h3>
             <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
-              No hay evaluaciones que coincidan con los filtros aplicados. Puedes asignar una nueva prueba a cualquier candidato.
+              {postulaciones.length === 0 
+                ? 'Aún no tienes candidatos postulados. Las evaluaciones aparecerán cuando recibas postulaciones.'
+                : 'No hay evaluaciones que coincidan con los filtros aplicados.'}
             </p>
-            <Button onClick={() => setIsCreateModalOpen(true)}>Asignar Nueva Evaluación</Button>
+            {postulaciones.length > 0 && (
+              <Button onClick={() => setIsCreateModalOpen(true)}>Asignar Nueva Evaluación</Button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -583,7 +595,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
 
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                      {/* Candidato y Posición */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center shadow-xs text-sm">
@@ -600,7 +611,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Tipo & Nombre de la prueba */}
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-1.5 ${badge.bg} ${badge.text} ${badge.border}`}>
                           <Icon className="h-3 w-3" />
@@ -614,7 +624,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Puntaje */}
                       <td className="px-6 py-4 text-center">
                         <div className="inline-flex flex-col items-center">
                           <span className={`px-3 py-1 rounded-xl text-base font-black border ${puntajeColor}`}>
@@ -626,7 +635,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Habilidades Evaluadas */}
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1 max-w-xs">
                           {item.habilidadesEvaluadas.slice(0, 3).map((h, i) => (
@@ -642,7 +650,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Estado */}
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
                           item.estado === 'APROBADO' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
@@ -655,9 +662,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Acciones */}
                       <td className="px-6 py-4 text-right space-x-1 whitespace-nowrap">
-                        {/* Ver Detalle Completo */}
                         <button
                           onClick={() => setSelectedEvaluacion(item)}
                           className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
@@ -666,19 +671,20 @@ export const CompanyEvaluacionesView: React.FC = () => {
                           <Eye className="h-4 w-4" />
                         </button>
 
-                        {/* Calificar / Modificar Nota */}
-                        <button
-                          onClick={() => {
-                            setGradingTarget(item);
-                            setGradeInput(item.puntaje);
-                            setGradeStatus(item.estado);
-                            setFeedbackInput(item.comentariosEvaluador || '');
-                          }}
-                          className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center"
-                          title="Calificar o retroalimentar"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </button>
+                        {item.evaluacionBackendId && (
+                          <button
+                            onClick={() => {
+                              setGradingTarget(item);
+                              setGradeInput(item.puntaje);
+                              setGradeStatus(item.recomendacion || 'ACEPTABLE');
+                              setFeedbackInput(item.comentariosEvaluador || '');
+                            }}
+                            className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center"
+                            title="Calificar o retroalimentar"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -689,7 +695,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
         )}
       </div>
 
-      {/* Modal 1: Ver Informe Detallado de la Evaluación */}
+      {/* Modal 1: Ver Informe Detallado */}
       {selectedEvaluacion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 animate-in slide-in-from-bottom-4">
@@ -715,7 +721,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
             </div>
 
             <div className="py-5 space-y-6">
-              {/* Resumen del Candidato & Puntuación */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-lg flex items-center justify-center shadow-sm">
@@ -737,7 +742,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Análisis de IA / Resumen */}
               {selectedEvaluacion.resumenIa && (
                 <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-100">
                   <div className="flex items-center gap-2 mb-2 text-purple-800 font-bold text-sm">
@@ -750,7 +754,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
                 </div>
               )}
 
-              {/* Habilidades y Competencias Evaluadas */}
               <div>
                 <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
                   Competencias y Tecnologías Evaluadas
@@ -765,7 +768,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Feedback del Evaluador */}
               {selectedEvaluacion.comentariosEvaluador && (
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                   <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -778,18 +780,12 @@ export const CompanyEvaluacionesView: React.FC = () => {
               )}
             </div>
 
-            {/* Footer Modal */}
             <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedEvaluacion(null)}
-              >
+              <Button variant="ghost" onClick={() => setSelectedEvaluacion(null)}>
                 Cerrar
               </Button>
               <button
-                onClick={() => {
-                  toast.success(`Informe PDF generado para ${selectedEvaluacion.candidatoNombre}`);
-                }}
+                onClick={() => toast.success(`Informe PDF generado para ${selectedEvaluacion.candidatoNombre}`)}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />
@@ -818,7 +814,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Slider / Input de Puntaje */}
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -836,24 +831,21 @@ export const CompanyEvaluacionesView: React.FC = () => {
                 />
               </div>
 
-              {/* Estado / Dictamen */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Dictamen Final
+                  Recomendación
                 </label>
                 <select
                   value={gradeStatus}
-                  onChange={(e) => setGradeStatus(e.target.value as EstadoEvaluacion)}
+                  onChange={(e) => setGradeStatus(e.target.value as any)}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 >
-                  <option value="APROBADO">Aprobado / Apto</option>
-                  <option value="COMPLETADA">Completada</option>
-                  <option value="EN_REVISION">En Revisión</option>
-                  <option value="DESCALIFICADO">Descalificado</option>
+                  <option value="RECOMENDADO">Recomendado</option>
+                  <option value="ACEPTABLE">Aceptable</option>
+                  <option value="NO_RECOMENDADO">No Recomendado</option>
                 </select>
               </div>
 
-              {/* Comentarios o Feedback */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Retroalimentación / Notas
@@ -862,7 +854,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                   rows={3}
                   value={feedbackInput}
                   onChange={(e) => setFeedbackInput(e.target.value)}
-                  placeholder="Detalla fortalezas, áreas de mejora o recomendaciones para el candidato..."
+                  placeholder="Detalla fortalezas, áreas de mejora o recomendaciones..."
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
@@ -890,7 +882,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Asignar Nueva Evaluación</h3>
-                <p className="text-xs text-slate-500">Envía una prueba personalizada a un postulante</p>
+                <p className="text-xs text-slate-500">Crea una evaluación técnica para un candidato</p>
               </div>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
@@ -901,109 +893,38 @@ export const CompanyEvaluacionesView: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateEvaluation} className="space-y-4">
-              {companyJobs.length > 0 && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Vacante / Puesto *
-                  </label>
-                  <select
-                    value={newEvalJobId}
-                    onChange={(e) => setNewEvalJobId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  >
-                    <option value="">Seleccionar vacante ({companyJobs.length})</option>
-                    {companyJobs.map(job => (
-                      <option key={job.id} value={job.id}>{job.titulo}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Nombre del Candidato *
+                  Candidato / Postulación *
                 </label>
-                <input
-                  type="text"
+                <select
+                  value={newEvalPostulacionId}
+                  onChange={(e) => setNewEvalPostulacionId(e.target.value)}
                   required
-                  value={newEvalCandidate}
-                  onChange={(e) => setNewEvalCandidate(e.target.value)}
-                  placeholder="Ej: David Paredes"
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                />
+                >
+                  <option value="">Seleccionar candidato ({postulaciones.length})</option>
+                  {postulaciones.map(app => (
+                    <option key={app.uuid || app.id} value={app.uuid || app.id}>
+                      {app.candidatoNombre || 'Candidato'} - {app.ofertaTitulo}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Email del Candidato
+                  Tipo de Evaluación
                 </label>
-                <input
-                  type="email"
-                  value={newEvalCandidateEmail}
-                  onChange={(e) => setNewEvalCandidateEmail(e.target.value)}
-                  placeholder="david.paredes@correo.com"
+                <select
+                  value={newEvalTipo}
+                  onChange={(e) => setNewEvalTipo(e.target.value as TipoEvaluacion)}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Tipo de Evaluación
-                  </label>
-                  <select
-                    value={newEvalTipo}
-                    onChange={(e) => setNewEvalTipo(e.target.value as TipoEvaluacion)}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  >
-                    <option value="PRUEBA_TECNICA">Prueba Técnica</option>
-                    <option value="PSICOMETRICO">Test Psicométrico</option>
-                    <option value="ENTREVISTA_TECNICA">Entrevista Técnica</option>
-                    <option value="IA_SCREENING">Screening con IA</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Dificultad
-                  </label>
-                  <select
-                    value={newEvalDifficulty}
-                    onChange={(e) => setNewEvalDifficulty(e.target.value as any)}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  >
-                    <option value="JUNIOR">Junior</option>
-                    <option value="MID">Semi-Senior (Mid)</option>
-                    <option value="SENIOR">Senior</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Título de la Prueba *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newEvalTitle}
-                  onChange={(e) => setNewEvalTitle(e.target.value)}
-                  placeholder="Ej: Desafío de Algoritmos y React Components"
-                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Habilidades a Evaluar (separadas por coma)
-                </label>
-                <input
-                  type="text"
-                  value={newEvalSkills}
-                  onChange={(e) => setNewEvalSkills(e.target.value)}
-                  placeholder="React, TypeScript, SQL, Clean Architecture"
-                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                />
+                >
+                  <option value="PRUEBA_TECNICA">Prueba Técnica</option>
+                  <option value="PSICOMETRICO">Test Psicométrico</option>
+                  <option value="ENTREVISTA_TECNICA">Entrevista Técnica</option>
+                </select>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -1014,7 +935,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow transition-colors"
                 >
-                  Asignar y Notificar
+                  Crear Evaluación
                 </button>
               </div>
             </form>
