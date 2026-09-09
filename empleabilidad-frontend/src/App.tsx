@@ -18,7 +18,9 @@ import { CompanyOfertasView } from './features/jobs/views/CompanyOfertasView';
 import { CompanyCandidatosView } from './features/jobs/views/CompanyCandidatosView';
 import { CompanyEvaluacionesView } from './features/jobs/views/CompanyEvaluacionesView';
 import { CandidateSearchView } from './features/jobs/views/CandidateSearchView';
-import { ProfileOnboardingView } from './features/profile/views/ProfileOnboardingView';
+import { CandidateApplicationsView } from './features/jobs/views/CandidateApplicationsView';
+import { CandidateInterviewsView } from './features/jobs/views/CandidateInterviewsView';
+import { CandidateProfileView } from './features/profile/views/CandidateProfileView';
 import { CompanyProfileView } from './features/profile/views/CompanyProfileView';
 import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
 import { AdminOfertasView } from './features/admin/views/AdminOfertasView';
@@ -75,8 +77,6 @@ const Inicio = () => (
 const EmpresasPublicas = () => <div className="p-8"><h1 className="text-3xl font-bold text-slate-800">Explorar Empresas</h1><p className="text-slate-500 mt-2">Descubre tu próximo gran lugar de trabajo.</p></div>;
 
 // --- VISTAS PROTEGIDAS (CANDIDATO) ---
-const CandidatoPostulaciones = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Mis Postulaciones</h1><p className="text-slate-500 mt-2">Haz seguimiento al estado de tus procesos.</p></div>;
-const CandidatoEntrevistas = () => <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h1 className="text-2xl font-bold text-slate-800">Mis Entrevistas</h1><p className="text-slate-500 mt-2">Organiza y prepárate para tus próximas citas.</p></div>;
 
 
 function App() {
@@ -143,9 +143,9 @@ function App() {
             <Route path="/candidato" element={<CandidateLayout />}>
               <Route index element={<Navigate to="buscar" replace />} />
               <Route path="buscar" element={<CandidateSearchView />} />
-              <Route path="perfil" element={<ProfileOnboardingView />} />
-              <Route path="postulaciones" element={<CandidatoPostulaciones />} />
-              <Route path="entrevistas" element={<CandidatoEntrevistas />} />
+              <Route path="perfil" element={<CandidateProfileView />} />
+              <Route path="postulaciones" element={<CandidateApplicationsView />} />
+              <Route path="entrevistas" element={<CandidateInterviewsView />} />
             </Route>
 
             {/* EMPRESA */}
