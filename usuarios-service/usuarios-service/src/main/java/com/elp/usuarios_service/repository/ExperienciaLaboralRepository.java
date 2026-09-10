@@ -7,4 +7,5 @@ import java.util.UUID;
 
 @Repository
 public interface ExperienciaLaboralRepository extends JpaRepository<ExperienciaLaboral, UUID> {
+    java.util.List<ExperienciaLaboral> findByUsuarioId(UUID usuarioId);
 }

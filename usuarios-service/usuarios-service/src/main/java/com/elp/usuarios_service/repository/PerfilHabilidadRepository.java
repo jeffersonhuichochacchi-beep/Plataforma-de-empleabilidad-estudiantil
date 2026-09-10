@@ -7,4 +7,6 @@ import java.util.UUID;
 
 @Repository
 public interface PerfilHabilidadRepository extends JpaRepository<PerfilHabilidad, UUID> {
+    java.util.List<PerfilHabilidad> findByUsuarioId(UUID usuarioId);
+    java.util.Optional<PerfilHabilidad> findByUsuarioIdAndHabilidadId(UUID usuarioId, UUID habilidadId);
 }

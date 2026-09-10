@@ -7,4 +7,5 @@ import java.util.UUID;
 
 @Repository
 public interface HabilidadRepository extends JpaRepository<Habilidad, UUID> {
+    java.util.Optional<Habilidad> findByNombreIgnoreCase(String nombre);
 }

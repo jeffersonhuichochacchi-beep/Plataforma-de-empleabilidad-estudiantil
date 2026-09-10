@@ -18,4 +18,52 @@ public class PerfilResponseDTO {
     private EstadoPerfil estadoPerfil;
     private List<String> motivosPendientes;
     private Boolean puedeAccionar; 
+    private String nombres;
+    private String apellidos;
+    private String telefono;
+    private String fotoPerfil;
+    private String biografia;
+    private String tituloProfesional;
+    private String ubicacion;
+    private String enlacePortafolio;
+    private List<ExperienciaDTO> experiencias;
+    private List<EducacionDTO> educacion;
+    private List<HabilidadDTO> habilidades;
+    private String cvNombre;
+
+    @Data
+    @Builder
+    public static class ExperienciaDTO {
+        private UUID id;
+        private String empresa;
+        private String cargo;
+        private String descripcion;
+        private String fechaInicio;
+        private String fechaFin;
+        private Boolean actual;
+        private String ubicacion;
+        private String modalidad;
+    }
+
+    @Data
+    @Builder
+    public static class EducacionDTO {
+        private UUID id;
+        private String institucion;
+        private String carrera;
+        private String grado;
+        private String fechaInicio;
+        private String fechaFin;
+        private Boolean actual;
+        private String descripcion;
+    }
+
+    @Data
+    @Builder
+    public static class HabilidadDTO {
+        private UUID id;
+        private String nombre;
+        private String nivel;
+        private Integer anosExperiencia;
+    }
 }

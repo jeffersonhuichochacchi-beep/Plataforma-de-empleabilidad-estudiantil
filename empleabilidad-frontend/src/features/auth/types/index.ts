@@ -14,4 +14,5 @@ export interface UsuarioResponseDTO {
   apellidos?: string; // para estudiantes
   razonSocial?: string; // para empresas
   nombreComercial?: string; // para empresas
+  nombre?: string;
 }

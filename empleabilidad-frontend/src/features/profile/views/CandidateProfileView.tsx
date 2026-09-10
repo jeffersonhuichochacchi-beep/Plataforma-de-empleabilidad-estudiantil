@@ -1,180 +1,75 @@
-import { useRef, useState } from 'react';
-import {
-  BookOpen,
-  BriefcaseBusiness,
-  Camera,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  Download,
-  Edit3,
-  GraduationCap,
-  Languages,
-  Mail,
-  MapPin,
-  Phone,
-  Plus,
-  Save,
-  Sparkles,
-  UserRound,
-  X,
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
+import { BriefcaseBusiness, CheckCircle2, Edit3, GraduationCap, Loader2, Mail, MapPin, Phone, Plus, Save, Trash2, UserRound } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { profileService } from '../services/profile.service';
+import type { ExperienciaPerfil, PerfilResponseDTO } from '../types';
 
 type Tab = 'resumen' | 'experiencia' | 'educacion' | 'habilidades';
+const emptyExperience = { empresa: '', cargo: '', descripcion: '', fechaInicio: '', fechaFin: '', actual: false, ubicacion: '', modalidad: '' };
+const emptyEducation = { institucion: '', carrera: '', grado: '', fechaInicio: '', fechaFin: '', actual: false, descripcion: '' };
 
-const skills = ['React', 'TypeScript', 'JavaScript', 'Tailwind CSS', 'Node.js', 'Git'];
 export const CandidateProfileView = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('resumen');
-  const [isEditing, setIsEditing] = useState(false);
-  const [photo, setPhoto] = useState('');
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
+  const [profile, setProfile] = useState<PerfilResponseDTO | null>(null);
+  const [tab, setTab] = useState<Tab>('resumen');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [personal, setPersonal] = useState({ nombres: '', apellidos: '', telefono: '', tituloProfesional: '', ubicacion: '', biografia: '', enlacePortafolio: '' });
+  const [experience, setExperience] = useState(emptyExperience);
+  const [education, setEducation] = useState(emptyEducation);
+  const [skill, setSkill] = useState({ nombre: '', nivel: 'INTERMEDIO', anosExperiencia: 0 });
 
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) setPhoto(URL.createObjectURL(file));
+  const load = async () => {
+    setLoading(true);
+    try {
+      const result = await profileService.getMiPerfil();
+      const parts = (result.nombreParaMostrar && result.nombreParaMostrar !== result.email) ? result.nombreParaMostrar.trim().split(/\s+/) : [];
+      const nombres = result.nombres?.trim() || parts.shift() || user?.nombres || '';
+      const apellidos = result.apellidos?.trim() || parts.join(' ') || user?.apellidos || '';
+      const normalized = { ...result, nombres, apellidos };
+      setProfile(normalized);
+      setPersonal({ nombres, apellidos, telefono: result.telefono || user?.telefono || '', tituloProfesional: result.tituloProfesional || '', ubicacion: result.ubicacion || '', biografia: result.biografia || '', enlacePortafolio: result.enlacePortafolio || '' });
+    } catch { toast.error('No se pudo cargar tu perfil.'); }
+    finally { setLoading(false); }
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    toast.success('Cambios guardados en esta vista de demostración');
+  useEffect(() => { void load(); }, []);
+
+  const savePersonal = async () => {
+    setSaving(true);
+    try {
+      const { enlacePortafolio: _unused, ...personalData } = personal;
+      let updated = await profileService.updateProfile(personalData);
+      if (cvFile) { updated = await profileService.uploadProfileCv(cvFile); setCvFile(null); }
+      setProfile(updated); setEditing(false); toast.success('Perfil actualizado correctamente.');
+    } catch (error: any) { toast.error(error.response?.data?.message || 'No se pudo actualizar el perfil.'); }
+    finally { setSaving(false); }
   };
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'resumen', label: 'Resumen' },
-    { id: 'experiencia', label: 'Experiencia' },
-    { id: 'educacion', label: 'Educación' },
-    { id: 'habilidades', label: 'Habilidades' },
-  ];
+  const addExperience = async (event: FormEvent) => { event.preventDefault(); if (!experience.empresa || !experience.cargo) return toast.error('Empresa y cargo son obligatorios.'); try { await profileService.addExperience(experience); setExperience(emptyExperience); await load(); toast.success('Experiencia agregada.'); } catch { toast.error('No se pudo agregar la experiencia.'); } };
+  const addEducation = async (event: FormEvent) => { event.preventDefault(); if (!education.institucion || !education.carrera) return toast.error('Institución y carrera son obligatorias.'); try { await profileService.addEducation(education); setEducation(emptyEducation); await load(); toast.success('Educación agregada.'); } catch { toast.error('No se pudo agregar la educación.'); } };
+  const addSkill = async (event: FormEvent) => { event.preventDefault(); if (!skill.nombre) return; try { await profileService.addSkill(skill); setSkill({ nombre: '', nivel: 'INTERMEDIO', anosExperiencia: 0 }); await load(); toast.success('Habilidad agregada.'); } catch { toast.error('No se pudo agregar la habilidad.'); } };
+  const remove = async (type: 'experience' | 'education' | 'skill', id: string) => { try { if (type === 'experience') await profileService.deleteExperience(id); if (type === 'education') await profileService.deleteEducation(id); if (type === 'skill') await profileService.deleteSkill(id); await load(); toast.success('Elemento eliminado.'); } catch { toast.error('No se pudo eliminar.'); } };
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="h-32 bg-gradient-to-r from-blue-700 via-indigo-600 to-slate-900 relative">
-          <div className="absolute -right-8 -top-20 h-56 w-56 rounded-full bg-blue-400/20 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-28 w-28 rounded-full bg-emerald-400/10 blur-2xl" />
-        </div>
+  if (loading) return <div className="flex h-64 items-center justify-center text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Cargando perfil...</div>;
+  if (!profile) return <div className="rounded-xl bg-white p-8 text-center">No se pudo cargar el perfil.</div>;
+  const name = `${profile.nombres || user?.email || ''} ${profile.apellidos || ''}`.trim();
+  const tabs: { id: Tab; label: string }[] = [{ id: 'resumen', label: 'Resumen' }, { id: 'experiencia', label: 'Experiencia' }, { id: 'educacion', label: 'Educación' }, { id: 'habilidades', label: 'Habilidades' }];
 
-        <div className="px-5 pb-6 sm:px-8">
-          <div className="-mt-14 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-end gap-4">
-              <div className="relative h-28 w-28 shrink-0 rounded-2xl border-4 border-white bg-blue-100 shadow-lg overflow-hidden">
-                {photo ? (
-                  <img src={photo} alt="Foto de perfil" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100 text-3xl font-bold text-blue-700">CM</div>
-                )}
-                <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-                <button
-                  type="button"
-                  onClick={() => photoInputRef.current?.click()}
-                  className="absolute bottom-1 right-1 rounded-lg bg-slate-900/80 p-1.5 text-white hover:bg-blue-600 transition-colors"
-                  title="Cambiar foto"
-                >
-                  <Camera className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="pb-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold text-slate-900">Carlos Mendoza</h1>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Perfil verificado
-                  </span>
-                </div>
-                <p className="mt-1 text-sm font-medium text-slate-500">Frontend Developer · Disponible para trabajar</p>
-              </div>
-            </div>
-
-            <div className="flex gap-2 sm:pb-1">
-              {isEditing ? (
-                <>
-                  <button type="button" onClick={() => setIsEditing(false)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">
-                    <X className="h-4 w-4" /> Cancelar
-                  </button>
-                  <button type="button" onClick={handleSave} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-                    <Save className="h-4 w-4" /> Guardar
-                  </button>
-                </>
-              ) : (
-                <button type="button" onClick={() => setIsEditing(true)} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-                  <Edit3 className="h-4 w-4" /> Editar perfil
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-3">
-            <div className="flex items-center gap-2 text-sm text-slate-600"><MapPin className="h-4 w-4 text-blue-600" /> Bogotá, Colombia</div>
-            <div className="flex items-center gap-2 text-sm text-slate-600"><Mail className="h-4 w-4 text-blue-600" /> carlos.mendoza@email.com</div>
-            <div className="flex items-center gap-2 text-sm text-slate-600"><Phone className="h-4 w-4 text-blue-600" /> +57 300 456 7890</div>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
-        <main className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto border-b border-slate-200 px-5 sm:px-8">
-            <nav className="flex min-w-max gap-6">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`border-b-2 px-1 py-4 text-sm font-semibold transition-colors ${activeTab === tab.id ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="p-5 sm:p-8">
-            {activeTab === 'resumen' && (
-              <div className="space-y-8">
-                <section>
-                  <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-bold text-slate-900">Sobre mí</h2><Edit3 className="h-4 w-4 text-slate-400" /></div>
-                  <p className="text-sm leading-7 text-slate-600">Desarrollador frontend apasionado por crear experiencias digitales simples, accesibles y de alto impacto. Tengo experiencia construyendo productos web escalables y trabajando con equipos ágiles para convertir ideas en soluciones reales.</p>
-                </section>
-                <section>
-                  <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-bold text-slate-900">Experiencia reciente</h2><button type="button" onClick={() => setActiveTab('experiencia')} className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700">Ver todo <ChevronRight className="h-4 w-4" /></button></div>
-                  <ExperienceItem current title="Frontend Developer" company="Digital Labs" date="Ene 2023 — Actualmente" description="Desarrollo de interfaces web con React y TypeScript, mejorando la experiencia de más de 20.000 usuarios." />
-                  <ExperienceItem title="Desarrollador Web" company="Studio Creativo" date="Mar 2021 — Dic 2022" description="Implementación de sitios web responsivos y componentes reutilizables para clientes de diferentes industrias." />
-                </section>
-                <section>
-                  <h2 className="mb-4 text-lg font-bold text-slate-900">Habilidades destacadas</h2>
-                  <div className="flex flex-wrap gap-2">{skills.map((skill) => <span key={skill} className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">{skill}</span>)}</div>
-                </section>
-              </div>
-            )}
-
-            {activeTab === 'experiencia' && <div className="space-y-5"><SectionHeading icon={<BriefcaseBusiness className="h-5 w-5" />} title="Trayectoria profesional" action="Agregar experiencia" /><ExperienceItem current title="Frontend Developer" company="Digital Labs" date="Ene 2023 — Actualmente" description="Desarrollo de interfaces web con React y TypeScript, mejorando la experiencia de más de 20.000 usuarios." /><ExperienceItem title="Desarrollador Web" company="Studio Creativo" date="Mar 2021 — Dic 2022" description="Implementación de sitios web responsivos y componentes reutilizables para clientes de diferentes industrias." /><ExperienceItem title="Practicante de Desarrollo" company="Nexa Solutions" date="Ago 2020 — Feb 2021" description="Apoyo en el desarrollo y mantenimiento de aplicaciones internas." /></div>}
-            {activeTab === 'educacion' && <div className="space-y-5"><SectionHeading icon={<GraduationCap className="h-5 w-5" />} title="Educación y certificaciones" action="Agregar estudio" /><EducationItem title="Ingeniería de Sistemas" place="Universidad Nacional de Colombia" date="2016 — 2021" /><EducationItem title="Professional Web Developer" place="Platzi · Certificación profesional" date="2022" /><EducationItem title="English B2 · Upper Intermediate" place="British Council" date="2023" /></div>}
-            {activeTab === 'habilidades' && <div className="space-y-8"><SectionHeading icon={<Sparkles className="h-5 w-5" />} title="Habilidades profesionales" action="Agregar habilidad" /><div className="grid gap-3 sm:grid-cols-2">{skills.map((skill, index) => <div key={skill} className="rounded-xl border border-slate-200 p-4"><div className="mb-3 flex items-center justify-between"><span className="font-semibold text-slate-800">{skill}</span><span className="text-xs font-medium text-slate-500">{index < 2 ? 'Avanzado' : 'Intermedio'}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${index < 2 ? 'w-[88%] bg-blue-600' : 'w-[70%] bg-indigo-500'}`} /></div></div>)}</div></div>}
-          </div>
-        </main>
-
-        <aside className="space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between"><h2 className="font-bold text-slate-900">Completitud del perfil</h2><span className="text-lg font-bold text-blue-600">85%</span></div>
-            <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full w-[85%] rounded-full bg-gradient-to-r from-blue-600 to-emerald-500" /></div>
-            <p className="text-xs leading-5 text-slate-500">Completa tu perfil para aumentar tus posibilidades de ser contactado.</p>
-            <div className="mt-4 space-y-2 text-xs"><div className="flex items-center gap-2 text-emerald-700"><Check className="h-4 w-4" /> Información personal</div><div className="flex items-center gap-2 text-emerald-700"><Check className="h-4 w-4" /> Experiencia laboral</div><div className="flex items-center gap-2 text-amber-700"><Plus className="h-4 w-4" /> Agrega tu portafolio</div></div>
-          </section>
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 font-bold text-slate-900">Información adicional</h2>
-            <div className="space-y-4"><InfoRow icon={<BriefcaseBusiness />} label="Modalidad" value="Remoto / Híbrido" /><InfoRow icon={<UserRound />} label="Tipo de empleo" value="Tiempo completo" /><InfoRow icon={<Languages />} label="Idiomas" value="Español, Inglés" /></div>
-          </section>
-          <section className="rounded-2xl bg-slate-900 p-5 text-white shadow-sm"><div className="mb-3 flex items-center gap-2"><Download className="h-5 w-5 text-blue-400" /><h2 className="font-bold">Tu currículum</h2></div><p className="mb-4 text-xs leading-5 text-slate-300">Mantén tu CV actualizado para destacar en tus postulaciones.</p><button type="button" onClick={() => toast('Descarga disponible próximamente')} className="w-full rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-blue-50">Ver currículum</button></section>
-        </aside>
-      </div>
-    </div>
-  );
+  return <div className="mx-auto max-w-6xl space-y-6">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="h-32 bg-gradient-to-r from-blue-700 via-indigo-600 to-slate-900" /><div className="px-5 pb-6 sm:px-8"><div className="-mt-12 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div className="flex items-end gap-4"><div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-blue-100 text-2xl font-bold text-blue-700 shadow-lg">{(profile.nombres || name || 'C').slice(0, 2).toUpperCase()}</div><div className="pb-1"><div className="flex items-center gap-2"><h1 className="text-2xl font-bold text-slate-900">{name}</h1><CheckCircle2 className="h-5 w-5 text-emerald-600" /></div><p className="text-sm font-medium text-slate-500">{profile.tituloProfesional || 'Completa tu información profesional'}</p></div></div>{editing ? <div className="flex gap-2"><button onClick={() => setEditing(false)} className="rounded-xl border px-4 py-2 text-sm">Cancelar</button><button onClick={savePersonal} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><Save className="h-4 w-4" />Guardar</button></div> : <button onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><Edit3 className="h-4 w-4" />Editar perfil</button>}</div><div className="mt-5 grid gap-3 border-t border-slate-100 pt-4 text-sm text-slate-600 sm:grid-cols-3"><span><MapPin className="mr-2 inline h-4 w-4 text-blue-600" />{profile.ubicacion || 'Ubicación no registrada'}</span><span><Mail className="mr-2 inline h-4 w-4 text-blue-600" />{profile.email}</span><span><Phone className="mr-2 inline h-4 w-4 text-blue-600" />{profile.telefono || 'Teléfono no registrado'}</span></div></div></section>
+    {editing && <section className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm sm:p-8"><div className="grid gap-4 sm:grid-cols-2">{([['nombres', 'Nombres'], ['apellidos', 'Apellidos'], ['telefono', 'Teléfono'], ['tituloProfesional', 'Título profesional'], ['ubicacion', 'Ubicación']] as const).map(([key, label]) => <label key={key} className="text-sm font-semibold text-slate-700">{label}<input value={personal[key]} onChange={e => setPersonal({ ...personal, [key]: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-normal" /></label>)}<label className="text-sm font-semibold text-slate-700 sm:col-span-2">CV (PDF)<input type="file" accept="application/pdf,.pdf" onChange={e => setCvFile(e.target.files?.[0] || null)} className="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2 font-normal" /><span className="mt-1 block text-xs font-normal text-slate-500">{cvFile?.name || profile.cvNombre || (profile.enlacePortafolio ? 'CV cargado en Cloudinary' : 'Selecciona un archivo PDF de hasta 5 MB')}</span></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">Sobre mí<textarea value={personal.biografia} onChange={e => setPersonal({ ...personal, biografia: e.target.value })} rows={4} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-normal" /></label></div></section>}
+    <div className="grid gap-6 lg:grid-cols-[1fr_300px]"><main className="rounded-2xl border border-slate-200 bg-white shadow-sm"><nav className="flex gap-6 overflow-x-auto border-b px-5 sm:px-8">{tabs.map(item => <button key={item.id} onClick={() => setTab(item.id)} className={`border-b-2 px-1 py-4 text-sm font-semibold ${tab === item.id ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>{item.label}</button>)}</nav><div className="p-5 sm:p-8">
+      {tab === 'resumen' && <div className="space-y-6"><section><h2 className="mb-2 text-lg font-bold">Sobre mí</h2><p className="leading-7 text-slate-600">{profile.biografia || 'Aún no has agregado una descripción profesional.'}</p></section><ListExperience items={(profile.experiencias || []).slice(0, 3)} /><div><h2 className="mb-3 text-lg font-bold">Habilidades destacadas</h2><div className="flex flex-wrap gap-2">{(profile.habilidades || []).map(h => <span key={h.id} className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">{h.nombre}</span>)}</div></div></div>}
+      {tab === 'experiencia' && <div className="space-y-5"><h2 className="text-lg font-bold"><BriefcaseBusiness className="mr-2 inline text-blue-600" />Experiencia laboral</h2><form onSubmit={addExperience} className="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2"><input placeholder="Empresa *" value={experience.empresa} onChange={e => setExperience({ ...experience, empresa: e.target.value })} className="rounded-lg border px-3 py-2" /><input placeholder="Cargo *" value={experience.cargo} onChange={e => setExperience({ ...experience, cargo: e.target.value })} className="rounded-lg border px-3 py-2" /><input type="date" value={experience.fechaInicio} onChange={e => setExperience({ ...experience, fechaInicio: e.target.value })} className="rounded-lg border px-3 py-2" /><input type="date" value={experience.fechaFin} onChange={e => setExperience({ ...experience, fechaFin: e.target.value })} className="rounded-lg border px-3 py-2" /><textarea placeholder="Descripción" value={experience.descripcion} onChange={e => setExperience({ ...experience, descripcion: e.target.value })} className="rounded-lg border px-3 py-2 sm:col-span-2" /><button className="inline-flex w-fit items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" />Agregar</button></form><ListExperience items={profile.experiencias || []} onRemove={id => remove('experience', id)} /></div>}
+      {tab === 'educacion' && <div className="space-y-5"><h2 className="text-lg font-bold"><GraduationCap className="mr-2 inline text-blue-600" />Educación</h2><form onSubmit={addEducation} className="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2"><input placeholder="Institución *" value={education.institucion} onChange={e => setEducation({ ...education, institucion: e.target.value })} className="rounded-lg border px-3 py-2" /><input placeholder="Carrera *" value={education.carrera} onChange={e => setEducation({ ...education, carrera: e.target.value })} className="rounded-lg border px-3 py-2" /><input placeholder="Grado" value={education.grado} onChange={e => setEducation({ ...education, grado: e.target.value })} className="rounded-lg border px-3 py-2" /><input type="date" value={education.fechaInicio} onChange={e => setEducation({ ...education, fechaInicio: e.target.value })} className="rounded-lg border px-3 py-2" /><button className="inline-flex w-fit items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" />Agregar</button></form><div className="space-y-3">{(profile.educacion || []).map(e => <div key={e.id} className="flex justify-between rounded-xl border p-4"><div><b>{e.carrera}</b><p className="text-sm text-slate-500">{e.institucion} {e.grado && `· ${e.grado}`}</p></div><button onClick={() => remove('education', e.id)} className="text-rose-500"><Trash2 className="h-4 w-4" /></button></div>)}</div></div>}
+      {tab === 'habilidades' && <div className="space-y-5"><h2 className="text-lg font-bold"><UserRound className="mr-2 inline text-blue-600" />Habilidades</h2><form onSubmit={addSkill} className="flex flex-wrap gap-3 rounded-xl bg-slate-50 p-4"><input placeholder="Ej. React" value={skill.nombre} onChange={e => setSkill({ ...skill, nombre: e.target.value })} className="rounded-lg border px-3 py-2" /><select value={skill.nivel} onChange={e => setSkill({ ...skill, nivel: e.target.value })} className="rounded-lg border px-3 py-2"><option>INTERMEDIO</option><option>BASICO</option><option>AVANZADO</option><option>EXPERTO</option></select><button className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" />Agregar</button></form><div className="grid gap-3 sm:grid-cols-2">{(profile.habilidades || []).map(h => <div key={h.id} className="flex items-center justify-between rounded-xl border p-4"><div><b>{h.nombre}</b><p className="text-xs text-slate-500">{h.nivel || 'INTERMEDIO'}</p></div><button onClick={() => remove('skill', h.id)} className="text-rose-500"><Trash2 className="h-4 w-4" /></button></div>)}</div></div>}
+    </div></main><aside className="space-y-6"><div className="rounded-2xl border bg-white p-5 shadow-sm"><div className="mb-3 flex justify-between font-bold">Completitud <span className="text-blue-600">{profile.porcentajeCompletitud}%</span></div><div className="h-2 rounded bg-slate-100"><div className="h-2 rounded bg-blue-600" style={{ width: `${profile.porcentajeCompletitud}%` }} /></div><p className="mt-3 text-xs text-slate-500">{profile.motivosPendientes?.join(' · ') || 'Tu perfil está completo.'}</p></div><div className="rounded-2xl bg-slate-900 p-5 text-white"><h2 className="font-bold">Tu currículum</h2><p className="my-3 text-xs text-slate-300">{profile.cvNombre || (profile.enlacePortafolio ? 'CV cargado en Cloudinary' : 'Aún no has subido un CV.')}</p><p className="text-xs text-slate-400">Puedes subirlo desde la sección de perfil.</p></div></aside></div>
+  </div>;
 };
 
-const SectionHeading = ({ icon, title, action }: { icon: React.ReactNode; title: string; action: string }) => <div className="flex items-center justify-between border-b border-slate-100 pb-4"><div className="flex items-center gap-2 text-blue-600"><span>{icon}</span><h2 className="text-lg font-bold text-slate-900">{title}</h2></div><button type="button" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"><Plus className="h-4 w-4" /> {action}</button></div>;
-
-const ExperienceItem = ({ current, title, company, date, description }: { current?: boolean; title: string; company: string; date: string; description: string }) => <article className="relative border-l-2 border-slate-200 pb-6 pl-6 last:pb-0"><span className={`absolute -left-[7px] top-0 h-3 w-3 rounded-full border-2 border-white ${current ? 'bg-blue-600' : 'bg-slate-300'}`} /><div className="flex flex-col justify-between gap-1 sm:flex-row"><div><h3 className="font-bold text-slate-800">{title}</h3><p className="text-sm font-medium text-blue-600">{company}</p></div><span className="text-xs text-slate-500">{date}</span></div><p className="mt-2 text-sm leading-6 text-slate-600">{description}</p></article>;
-
-const EducationItem = ({ title, place, date }: { title: string; place: string; date: string }) => <article className="flex gap-4 rounded-xl border border-slate-200 p-4"><div className="rounded-xl bg-blue-50 p-3 text-blue-600"><BookOpen className="h-5 w-5" /></div><div className="flex-1"><div className="flex flex-col justify-between gap-1 sm:flex-row"><h3 className="font-bold text-slate-800">{title}</h3><span className="text-xs text-slate-500">{date}</span></div><p className="mt-1 text-sm text-slate-500">{place}</p></div></article>;
-
-const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => <div className="flex items-center gap-3"><span className="text-blue-600 [&>svg]:h-4 [&>svg]:w-4">{icon}</span><div><p className="text-xs text-slate-400">{label}</p><p className="text-sm font-medium text-slate-700">{value}</p></div></div>;
+const ListExperience = ({ items, onRemove }: { items: ExperienciaPerfil[]; onRemove?: (id: string) => void }) => <section><h2 className="mb-3 text-lg font-bold">Experiencia reciente</h2>{items.length === 0 ? <p className="text-sm text-slate-500">Aún no has agregado experiencia.</p> : <div className="space-y-4">{items.map(e => <article key={e.id} className="border-l-2 border-blue-500 pl-4"><div className="flex justify-between"><div><b>{e.cargo}</b><p className="text-sm text-blue-600">{e.empresa}</p></div>{onRemove && <button onClick={() => onRemove(e.id)} className="text-rose-500"><Trash2 className="h-4 w-4" /></button>}</div><p className="mt-1 text-sm text-slate-600">{e.descripcion}</p></article>)}</div>}</section>;
