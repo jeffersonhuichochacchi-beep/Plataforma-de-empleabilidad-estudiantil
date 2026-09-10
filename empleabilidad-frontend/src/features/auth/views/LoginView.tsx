@@ -32,6 +32,9 @@ export const LoginView: React.FC = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
+      // Evita que una sesión anterior se reutilice mientras se autentica
+      // otra cuenta en la misma pestaña.
+      localStorage.removeItem('jwt_token');
       const response = await authService.login(data);
       // Tras el login, obtenemos el perfil real
       localStorage.setItem('jwt_token', response.token);

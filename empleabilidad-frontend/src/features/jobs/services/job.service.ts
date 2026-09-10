@@ -123,7 +123,8 @@ export const jobService = {
     size?: number;
   }): Promise<PageResponse<PostulacionResponse>> {
     const { data } = await postulacionesApi.get<PageResponse<PostulacionResponse>>('/postulaciones/empresa', {
-      params,
+      params: { ...params, _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
     });
     return data;
   },
@@ -177,20 +178,29 @@ export const jobService = {
   },
 
   async getMyApplications(params?: { estado?: EstadoPostulacion; page?: number; size?: number }): Promise<PageResponse<PostulacionResponse>> {
-    const { data } = await postulacionesApi.get<PageResponse<PostulacionResponse>>('/postulaciones/mis-postulaciones', { params });
+    const { data } = await postulacionesApi.get<PageResponse<PostulacionResponse>>('/postulaciones/mis-postulaciones', {
+      params: { ...params, _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     return data;
   },
 
   async getInterviewsByApplication(postulacionId: string): Promise<PageResponse<EntrevistaResponse>> {
     const { data } = await postulacionesApi.get<PageResponse<EntrevistaResponse>>(
-      `/postulaciones/${postulacionId}/entrevistas`, { params: { size: 100 } }
+      `/postulaciones/${postulacionId}/entrevistas`, {
+        params: { size: 100, _t: Date.now() },
+        headers: { 'Cache-Control': 'no-cache' },
+      }
     );
     return data;
   },
 
   async getMyInterviews(params?: { page?: number; size?: number }): Promise<PageResponse<EntrevistaResponse>> {
     const { data } = await postulacionesApi.get<PageResponse<EntrevistaResponse>>(
-      '/entrevistas/mis-entrevistas', { params }
+      '/entrevistas/mis-entrevistas', {
+        params: { ...params, _t: Date.now() },
+        headers: { 'Cache-Control': 'no-cache' },
+      }
     );
     return data;
   },

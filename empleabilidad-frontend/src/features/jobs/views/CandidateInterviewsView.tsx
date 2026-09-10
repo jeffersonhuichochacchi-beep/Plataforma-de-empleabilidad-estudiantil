@@ -12,9 +12,42 @@ export const CandidateInterviewsView = () => {
   const [interviews, setInterviews] = useState<(EntrevistaResponse & { application?: PostulacionResponse })[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'upcoming' | 'history'>('upcoming');
-  const load = async () => { setLoading(true); try { const [apps, result] = await Promise.all([jobService.getMyApplications({ size: 100 }), jobService.getMyInterviews({ size: 100 })]); const applications = new Map((apps.content || []).map(app => [app.uuid, app])); setInterviews((result.content || []).map(i => ({ ...i, application: applications.get(i.postulacionId) })).sort((a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime())); } catch { toast.error('No se pudieron cargar tus entrevistas.'); } finally { setLoading(false); } };
+  const load = async () => {
+    setLoading(true);
+    try {
+      const apps = await jobService.getMyApplications({ size: 100 });
+      const applications = apps.content || [];
+
+      // Consultar por postulación evita que una respuesta global quede
+      // desactualizada después de que la empresa reprograma una entrevista.
+      const interviewPages = await Promise.all(
+        applications.map(application =>
+          jobService.getInterviewsByApplication(application.uuid)
+            .then(result => result.content || [])
+            .catch(() => [])
+        )
+      );
+
+      const applicationById = new Map(applications.map(application => [application.uuid, application]));
+      const loadedInterviews = interviewPages.flat().map(interview => ({
+        ...interview,
+        application: applicationById.get(interview.postulacionId),
+      }));
+
+      setInterviews(loadedInterviews.sort((a, b) =>
+        new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime()
+      ));
+    } catch {
+      toast.error('No se pudieron cargar tus entrevistas.');
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => { load(); }, []);
-  const upcoming = useMemo(() => interviews.filter(i => !['REALIZADA', 'CANCELADA', 'NO_ASISTIO'].includes(i.estado) && new Date(i.fechaHora) >= new Date()), [interviews]);
+  // La fecha llega normalizada por el backend en UTC. No ocultar una
+  // entrevista activa solo por una diferencia de zona horaria al actualizar;
+  // únicamente los estados finales deben pasar al historial.
+  const upcoming = useMemo(() => interviews.filter(i => !['REALIZADA', 'CANCELADA', 'NO_ASISTIO'].includes(i.estado)), [interviews]);
   const history = useMemo(() => interviews.filter(i => !upcoming.includes(i)), [interviews, upcoming]);
   const visible = tab === 'upcoming' ? upcoming : history;
   return <div className="mx-auto max-w-6xl space-y-6 animate-fade-in"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="mb-1 text-sm font-semibold text-blue-600">Organiza tu agenda</p><h1 className="text-3xl font-bold tracking-tight text-slate-900">Mis entrevistas</h1><p className="mt-2 text-slate-500">Aquí aparecerán las entrevistas que las empresas programen para tus postulaciones.</p></div><button onClick={load} className="inline-flex items-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm"><RefreshCw className={`h-4 w-4 text-blue-600 ${loading ? 'animate-spin' : ''}`} />Actualizar</button></div><div className="grid grid-cols-1 gap-4 sm:grid-cols-3"><SummaryCard icon={<CalendarDays />} value={String(upcoming.length)} label="Próximas entrevistas" tone="blue" /><SummaryCard icon={<CheckCircle2 />} value={String(interviews.filter(i => i.estado === 'REALIZADA').length)} label="Completadas" tone="emerald" /><SummaryCard icon={<Clock3 />} value={String(interviews.length)} label="Total de entrevistas" tone="indigo" /></div><section className="rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-200 px-5 pt-5 sm:px-6 sm:pt-6"><h2 className="text-lg font-bold text-slate-900">Agenda de entrevistas</h2><p className="mt-1 text-sm text-slate-500">Consulta fecha, modalidad y detalles de cada reunión.</p><div className="mt-5 flex gap-6"><TabButton active={tab === 'upcoming'} onClick={() => setTab('upcoming')}>Próximas <span className="ml-1 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700">{upcoming.length}</span></TabButton><TabButton active={tab === 'history'} onClick={() => setTab('history')}>Historial</TabButton></div></div>{loading ? <div className="p-12 text-center text-sm text-slate-500"><RefreshCw className="mx-auto mb-3 h-7 w-7 animate-spin text-blue-600" />Cargando entrevistas...</div> : visible.length === 0 ? <div className="p-12 text-center"><CalendarDays className="mx-auto mb-3 h-10 w-10 text-slate-300" /><p className="font-semibold text-slate-700">{tab === 'upcoming' ? 'Aún no tienes entrevistas programadas' : 'No hay entrevistas en tu historial'}</p><p className="mt-1 text-sm text-slate-500">La empresa te notificará aquí cuando programe una entrevista.</p></div> : <div className="divide-y divide-slate-100">{visible.map(i => <InterviewCard key={i.uuid} interview={i} upcoming={tab === 'upcoming'} />)}</div>}</section></div>;

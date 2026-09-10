@@ -92,10 +92,9 @@ export const CompanyCandidatosView: React.FC = () => {
       }
 
       // 2. Fetch applications
-      const appsRes = await jobService.getCompanyApplications({
-        empresaId: user?.id,
-        size: 100,
-      });
+      // El backend obtiene la empresa desde el JWT. No usar un ID que pueda
+      // haber quedado desactualizado en el estado del navegador.
+      const appsRes = await jobService.getCompanyApplications({ size: 100 });
 
       setPostulaciones(appsRes.content || []);
     } catch (error: any) {
@@ -111,11 +110,24 @@ export const CompanyCandidatosView: React.FC = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!selectedPostulacion) { setCandidateInterviews([]); return; }
-    jobService.getInterviewsByApplication(selectedPostulacion.uuid)
-      .then(result => setCandidateInterviews(result.content || []))
-      .catch(() => setCandidateInterviews([]));
-  }, [selectedPostulacion]);
+    const postulacionId = selectedPostulacion?.uuid;
+    if (!postulacionId) {
+      setCandidateInterviews([]);
+      return;
+    }
+
+    let cancelled = false;
+    setCandidateInterviews([]);
+    jobService.getInterviewsByApplication(postulacionId)
+      .then(result => {
+        if (!cancelled) setCandidateInterviews(result.content || []);
+      })
+      .catch(() => {
+        if (!cancelled) setCandidateInterviews([]);
+      });
+
+    return () => { cancelled = true; };
+  }, [selectedPostulacion?.uuid]);
 
   // Status Change Handler
   const handleConfirmStatusChange = async () => {
@@ -158,17 +170,25 @@ export const CompanyCandidatosView: React.FC = () => {
     setIsScheduling(true);
     try {
       const payload = { ...interviewForm, fechaHora: new Date(interviewForm.fechaHora).toISOString() };
+      let savedInterview: EntrevistaResponse;
       if (editingInterviewId) {
-        await jobService.rescheduleInterview(editingInterviewId, payload);
+        savedInterview = await jobService.rescheduleInterview(editingInterviewId, payload);
         toast.success('Entrevista reprogramada correctamente.');
       } else {
-        await jobService.createInterview(interviewTarget.uuid, payload);
+        savedInterview = await jobService.createInterview(interviewTarget.uuid, payload);
         toast.success('Entrevista programada. El candidato podrá verla en su agenda.');
       }
       setPostulaciones(prev => prev.map(p => p.uuid === interviewTarget.uuid ? { ...p, estado: 'ENTREVISTA' } : p));
+      // Mantener sincronizada la entrevista activa permite reprogramarla
+      // nuevamente sin cerrar sesión ni volver a cargar toda la vista.
+      setCandidateInterviews(prev => {
+        const exists = prev.some(interview => interview.uuid === savedInterview.uuid);
+        return exists
+          ? prev.map(interview => interview.uuid === savedInterview.uuid ? savedInterview : interview)
+          : [...prev, savedInterview];
+      });
       setInterviewTarget(null);
       setEditingInterviewId(null);
-      setCandidateInterviews([]);
       setInterviewForm({ fechaHora: '', tipo: 'VIRTUAL', ubicacionOEnlace: '', duracion: 30, observaciones: '' });
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'No se pudo programar la entrevista.');

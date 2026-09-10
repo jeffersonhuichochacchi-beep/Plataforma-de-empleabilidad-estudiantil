@@ -33,11 +33,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
-    
+
+    set({ isLoading: true });
     try {
       const user = await authService.getMe();
+      // Una comprobación iniciada con un token anterior no puede sobrescribir
+      // la sesión que acaba de iniciar el usuario.
+      if (localStorage.getItem('jwt_token') !== token) return;
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
+      if (localStorage.getItem('jwt_token') !== token) return;
       localStorage.removeItem('jwt_token');
       set({ user: null, isAuthenticated: false, isLoading: false });
     }

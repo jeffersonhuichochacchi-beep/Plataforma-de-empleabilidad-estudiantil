@@ -49,6 +49,9 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         Postulacion postulacion = postulacionRepository.findByUuid(postulacionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Postulacion no encontrada"));
 
+        if (!postulacion.getEmpresaId().equals(entrevistadorId)) {
+            throw new ForbiddenException("No tienes permisos para programar una entrevista para esta postulacion");
+        }
         validarPostulacionParaEntrevista(postulacion);
         
         if (request.getFechaHora().isBefore(OffsetDateTime.now())) {
@@ -71,7 +74,7 @@ public class EntrevistaServiceImpl implements EntrevistaService {
             entrevista.setUbicacion(request.getUbicacionOEnlace());
         }
 
-        entrevista = entrevistaRepository.save(entrevista);
+        entrevista = entrevistaRepository.saveAndFlush(entrevista);
 
         if (postulacion.getEstado() == EstadoPostulacion.PRESELECCIONADA || postulacion.getEstado() == EstadoPostulacion.EN_REVISION) {
             EstadoPostulacion estadoAnt = postulacion.getEstado();
@@ -93,7 +96,12 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         Entrevista entrevista = entrevistaRepository.findByUuid(entrevistaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Entrevista no encontrada"));
         Postulacion postulacion = entrevista.getPostulacion();
-        if (!postulacion.getEmpresaId().equals(entrevistadorId)) {
+        // Las entrevistas antiguas podían haberse creado antes de validar la
+        // empresa en crearEntrevista. Se permite conservarlas únicamente si
+        // fueron creadas por la empresa autenticada.
+        boolean perteneceAlaEmpresa = postulacion.getEmpresaId().equals(entrevistadorId);
+        boolean fueCreadaPorLaEmpresa = entrevistadorId.equals(entrevista.getCreadoPor());
+        if (!perteneceAlaEmpresa && !fueCreadaPorLaEmpresa) {
             throw new ForbiddenException("No tienes permisos para reprogramar esta entrevista");
         }
         validarPostulacionParaEntrevista(postulacion);
@@ -115,7 +123,9 @@ public class EntrevistaServiceImpl implements EntrevistaService {
         // Se conserva como programada para que funcione también con bases de datos
         // creadas antes de agregar el estado REPROGRAMADA.
         entrevista.setEstado(EstadoEntrevista.PROGRAMADA);
-        entrevista = entrevistaRepository.save(entrevista);
+        // Forzar el flush para que la reprogramación quede disponible en la
+        // siguiente consulta inmediatamente después de guardar.
+        entrevista = entrevistaRepository.saveAndFlush(entrevista);
         registrarAuditoria(entrevistadorId, "ENTREVISTA_REPROGRAMADA", "Entrevista " + entrevistaId + " reprogramada");
         return entrevistaMapper.toResponse(entrevista);
     }

@@ -3,7 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthLayout } from './features/auth/layouts/AuthLayout';
 import { LoginView } from './features/auth/views/LoginView';
 import { RegisterView } from './features/auth/views/RegisterView';
-import { ProtectedRoute } from './core/ProtectedRoute';
+import { ProtectedRoute, RoleProtectedRoute } from './core/ProtectedRoute';
 
 // Layouts
 import { PublicLayout } from './app/layouts/PublicLayout';
@@ -140,21 +140,25 @@ function App() {
           <Route element={<ProtectedRoute />}>
 
             {/* CANDIDATO */}
-            <Route path="/candidato" element={<CandidateLayout />}>
-              <Route index element={<Navigate to="buscar" replace />} />
-              <Route path="buscar" element={<CandidateSearchView />} />
-              <Route path="perfil" element={<CandidateProfileView />} />
-              <Route path="postulaciones" element={<CandidateApplicationsView />} />
-              <Route path="entrevistas" element={<CandidateInterviewsView />} />
+            <Route element={<RoleProtectedRoute allowedRoles={['ESTUDIANTE', 'PROFESIONAL', 'CANDIDATO']} redirectTo="/empresa/ofertas" />}>
+              <Route path="/candidato" element={<CandidateLayout />}>
+                <Route index element={<Navigate to="buscar" replace />} />
+                <Route path="buscar" element={<CandidateSearchView />} />
+                <Route path="perfil" element={<CandidateProfileView />} />
+                <Route path="postulaciones" element={<CandidateApplicationsView />} />
+                <Route path="entrevistas" element={<CandidateInterviewsView />} />
+              </Route>
             </Route>
 
             {/* EMPRESA */}
-            <Route path="/empresa" element={<CompanyLayout />}>
-              <Route index element={<Navigate to="ofertas" replace />} />
-              <Route path="ofertas" element={<CompanyOfertasView />} />
-              <Route path="candidatos" element={<CompanyCandidatosView />} />
-              <Route path="evaluaciones" element={<CompanyEvaluacionesView />} />
-              <Route path="perfil" element={<CompanyProfileView />} />
+            <Route element={<RoleProtectedRoute allowedRoles={['EMPRESA', 'RECLUTADOR']} redirectTo="/candidato/buscar" />}>
+              <Route path="/empresa" element={<CompanyLayout />}>
+                <Route index element={<Navigate to="ofertas" replace />} />
+                <Route path="ofertas" element={<CompanyOfertasView />} />
+                <Route path="candidatos" element={<CompanyCandidatosView />} />
+                <Route path="evaluaciones" element={<CompanyEvaluacionesView />} />
+                <Route path="perfil" element={<CompanyProfileView />} />
+              </Route>
             </Route>
 
           </Route>
