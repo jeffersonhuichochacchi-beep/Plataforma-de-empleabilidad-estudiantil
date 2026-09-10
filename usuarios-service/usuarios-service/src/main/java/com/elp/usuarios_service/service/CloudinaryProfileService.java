@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Map;
 import java.util.UUID;
 
@@ -33,11 +37,25 @@ public class CloudinaryProfileService {
             throw new IllegalArgumentException("Solo se permiten archivos PDF");
         }
         Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                // Igual que los CV de postulaciones: Cloudinary almacena el archivo
+                // y el backend lo entrega como application/pdf al visor.
                 "resource_type", "raw", "folder", "cvs_perfiles",
                 "public_id", "cv_" + usuarioId + "_" + UUID.randomUUID()));
-        Object url = result.get("secure_url");
-        if (url == null) throw new IOException("Cloudinary no devolvió la URL del CV");
+        Object publicId = result.get("public_id");
+        Object version = result.get("version");
+        if (publicId == null || version == null) throw new IOException("Cloudinary no devolvió los datos del CV");
+        String url = cloudinary.url().secure(true).resourceType("raw").type("upload")
+                .version(version.toString()).generate(publicId.toString());
         log.info("CV del usuario {} subido correctamente a Cloudinary", usuarioId);
-        return url.toString();
+        return url;
+    }
+
+    public byte[] descargar(String url) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url)).GET().build();
+        HttpResponse<byte[]> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("Cloudinary respondió HTTP " + response.statusCode());
+        }
+        return response.body();
     }
 }

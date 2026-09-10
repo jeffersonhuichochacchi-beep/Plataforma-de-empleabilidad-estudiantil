@@ -10,6 +10,8 @@ import com.elp.usuarios_service.service.PerfilService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ContentDisposition;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,6 +50,16 @@ public class PerfilController {
             @RequestParam("file") MultipartFile file) {
         if (userDetails == null || userDetails.getUsuario() == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(perfilService.subirCvPortafolio(userDetails.getUsuario().getId(), file));
+    }
+
+    @GetMapping("/cv-portafolio/archivo")
+    public ResponseEntity<byte[]> descargarCvPortafolio(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        if (userDetails == null || userDetails.getUsuario() == null) return ResponseEntity.status(401).build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.inline().filename("CV_Candidato.pdf").build());
+        return ResponseEntity.ok().headers(headers)
+                .body(perfilService.descargarCvPortafolio(userDetails.getUsuario().getId()));
     }
 
     @PutMapping("/me")

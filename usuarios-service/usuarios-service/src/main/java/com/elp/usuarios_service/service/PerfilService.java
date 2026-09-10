@@ -212,4 +212,19 @@ public class PerfilService {
         estudianteRepository.save(estudiante);
         return obtenerMiPerfil(usuarioId);
     }
+
+    @Transactional(readOnly = true)
+    public byte[] descargarCvPortafolio(UUID usuarioId) {
+        Estudiante estudiante = estudianteRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Candidato no encontrado"));
+        if (estudiante.getEnlacePortafolio() == null || estudiante.getEnlacePortafolio().isBlank()) {
+            throw new IllegalArgumentException("El candidato no tiene un CV cargado");
+        }
+        try {
+            return cloudinaryProfileService.descargar(estudiante.getEnlacePortafolio());
+        } catch (IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalArgumentException("No se pudo obtener el CV desde Cloudinary", e);
+        }
+    }
 }
