@@ -88,6 +88,39 @@ public class EntrevistaServiceImpl implements EntrevistaService {
     }
 
     @Override
+    @Transactional
+    public EntrevistaResponse reprogramarEntrevista(UUID entrevistaId, UUID entrevistadorId, EntrevistaRequest request) {
+        Entrevista entrevista = entrevistaRepository.findByUuid(entrevistaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entrevista no encontrada"));
+        Postulacion postulacion = entrevista.getPostulacion();
+        if (!postulacion.getEmpresaId().equals(entrevistadorId)) {
+            throw new ForbiddenException("No tienes permisos para reprogramar esta entrevista");
+        }
+        validarPostulacionParaEntrevista(postulacion);
+        if (request.getFechaHora().isBefore(OffsetDateTime.now())) {
+            throw new BusinessException("No se puede programar una entrevista en el pasado");
+        }
+
+        entrevista.setFechaHora(Timestamp.from(request.getFechaHora().toInstant()));
+        entrevista.setDuracion(request.getDuracion());
+        entrevista.setTipo(request.getTipo());
+        entrevista.setObservaciones(request.getObservaciones());
+        entrevista.setEnlace(null);
+        entrevista.setUbicacion(null);
+        if (request.getTipo() == TipoEntrevista.VIRTUAL || request.getTipo() == TipoEntrevista.TELEFONICA) {
+            entrevista.setEnlace(request.getUbicacionOEnlace());
+        } else {
+            entrevista.setUbicacion(request.getUbicacionOEnlace());
+        }
+        // Se conserva como programada para que funcione también con bases de datos
+        // creadas antes de agregar el estado REPROGRAMADA.
+        entrevista.setEstado(EstadoEntrevista.PROGRAMADA);
+        entrevista = entrevistaRepository.save(entrevista);
+        registrarAuditoria(entrevistadorId, "ENTREVISTA_REPROGRAMADA", "Entrevista " + entrevistaId + " reprogramada");
+        return entrevistaMapper.toResponse(entrevista);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Page<EntrevistaResponse> listarEntrevistasPorPostulacion(UUID postulacionId, UUID usuarioId, String rol, Pageable pageable) {
         Postulacion postulacion = postulacionRepository.findByUuid(postulacionId)

@@ -40,6 +40,15 @@ public class EntrevistaController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @PutMapping("/entrevistas/{entrevistaId}/reprogramar")
+    @Operation(summary = "Reprogramar entrevista")
+    public ResponseEntity<EntrevistaResponse> reprogramarEntrevista(
+            @PathVariable UUID entrevistaId,
+            @Valid @RequestBody EntrevistaRequest request) {
+        return ResponseEntity.ok(entrevistaService.reprogramarEntrevista(
+                entrevistaId, SecurityUtils.getUsuarioLogueadoId(), request));
+    }
+
     @GetMapping("/postulaciones/{postulacionId}/entrevistas")
     @Operation(summary = "Listar entrevistas de una postulacion")
     public ResponseEntity<Page<EntrevistaResponse>> listarEntrevistas(
@@ -56,7 +65,6 @@ public class EntrevistaController {
     }
 
     @GetMapping("/entrevistas/mis-entrevistas")
-    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'PROFESIONAL', 'CANDIDATO')")
     @Operation(summary = "Listar mis entrevistas", description = "Lista las entrevistas del candidato autenticado")
     public ResponseEntity<Page<EntrevistaResponse>> listarMisEntrevistas(
             @RequestParam(defaultValue = "0") int page,

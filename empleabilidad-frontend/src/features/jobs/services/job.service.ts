@@ -165,6 +165,17 @@ export const jobService = {
     return data;
   },
 
+  async rescheduleInterview(entrevistaId: string, payload: {
+    fechaHora: string;
+    tipo: TipoEntrevista;
+    ubicacionOEnlace: string;
+    duracion: number;
+    observaciones?: string;
+  }): Promise<EntrevistaResponse> {
+    const { data } = await postulacionesApi.put<EntrevistaResponse>(`/entrevistas/${entrevistaId}/reprogramar`, payload);
+    return data;
+  },
+
   async getMyApplications(params?: { estado?: EstadoPostulacion; page?: number; size?: number }): Promise<PageResponse<PostulacionResponse>> {
     const { data } = await postulacionesApi.get<PageResponse<PostulacionResponse>>('/postulaciones/mis-postulaciones', { params });
     return data;

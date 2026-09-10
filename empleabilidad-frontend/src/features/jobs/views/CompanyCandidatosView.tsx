@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
-import type { PostulacionResponse, EstadoPostulacion, OfertaResponse, TipoEntrevista } from '../types/job.types';
+import type { PostulacionResponse, EstadoPostulacion, OfertaResponse, TipoEntrevista, EntrevistaResponse } from '../types/job.types';
 import { Button } from '@/shared/components/Button';
 import toast from 'react-hot-toast';
 
@@ -71,6 +71,8 @@ export const CompanyCandidatosView: React.FC = () => {
   const [interviewTarget, setInterviewTarget] = useState<PostulacionResponse | null>(null);
   const [interviewForm, setInterviewForm] = useState({ fechaHora: '', tipo: 'VIRTUAL' as TipoEntrevista, ubicacionOEnlace: '', duracion: 30, observaciones: '' });
   const [isScheduling, setIsScheduling] = useState(false);
+  const [candidateInterviews, setCandidateInterviews] = useState<EntrevistaResponse[]>([]);
+  const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<PostulacionResponse | null>(null);
@@ -107,6 +109,13 @@ export const CompanyCandidatosView: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!selectedPostulacion) { setCandidateInterviews([]); return; }
+    jobService.getInterviewsByApplication(selectedPostulacion.uuid)
+      .then(result => setCandidateInterviews(result.content || []))
+      .catch(() => setCandidateInterviews([]));
+  }, [selectedPostulacion]);
 
   // Status Change Handler
   const handleConfirmStatusChange = async () => {
@@ -148,10 +157,18 @@ export const CompanyCandidatosView: React.FC = () => {
     }
     setIsScheduling(true);
     try {
-      await jobService.createInterview(interviewTarget.uuid, { ...interviewForm, fechaHora: new Date(interviewForm.fechaHora).toISOString() });
-      toast.success('Entrevista programada. El candidato podrá verla en su agenda.');
+      const payload = { ...interviewForm, fechaHora: new Date(interviewForm.fechaHora).toISOString() };
+      if (editingInterviewId) {
+        await jobService.rescheduleInterview(editingInterviewId, payload);
+        toast.success('Entrevista reprogramada correctamente.');
+      } else {
+        await jobService.createInterview(interviewTarget.uuid, payload);
+        toast.success('Entrevista programada. El candidato podrá verla en su agenda.');
+      }
       setPostulaciones(prev => prev.map(p => p.uuid === interviewTarget.uuid ? { ...p, estado: 'ENTREVISTA' } : p));
       setInterviewTarget(null);
+      setEditingInterviewId(null);
+      setCandidateInterviews([]);
       setInterviewForm({ fechaHora: '', tipo: 'VIRTUAL', ubicacionOEnlace: '', duracion: 30, observaciones: '' });
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'No se pudo programar la entrevista.');
@@ -697,12 +714,23 @@ export const CompanyCandidatosView: React.FC = () => {
               ) : <div />}
 
               <div className="flex items-center gap-2">
+              {candidateInterviews.some(i => !['REALIZADA', 'CANCELADA', 'NO_ASISTIO'].includes(i.estado)) && <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const interview = candidateInterviews.find(i => !['REALIZADA', 'CANCELADA', 'NO_ASISTIO'].includes(i.estado))!;
+                  setEditingInterviewId(interview.uuid);
+                  setInterviewTarget(selectedPostulacion);
+                  setInterviewForm({ fechaHora: new Date(interview.fechaHora).toISOString().slice(0, 16), tipo: interview.tipo, ubicacionOEnlace: interview.enlace || interview.ubicacion || '', duracion: interview.duracion, observaciones: interview.observaciones || '' });
+                }}
+                className="inline-flex items-center gap-1.5"
+              ><CalendarPlus className="h-4 w-4" /> Reprogramar</Button>}
               <Button
                 size="sm"
                 onClick={() => setInterviewTarget(selectedPostulacion)}
                 className="inline-flex items-center gap-1.5"
               >
-                <CalendarPlus className="h-4 w-4" /> Programar entrevista
+                <CalendarPlus className="h-4 w-4" /> {candidateInterviews.some(i => !['REALIZADA', 'CANCELADA', 'NO_ASISTIO'].includes(i.estado)) ? 'Nueva entrevista' : 'Programar entrevista'}
               </Button>
               <Button
                 variant="outline"
@@ -720,13 +748,13 @@ export const CompanyCandidatosView: React.FC = () => {
       {interviewTarget && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between"><div><h3 className="text-lg font-bold text-slate-900">Programar entrevista</h3><p className="text-sm text-slate-500">{interviewTarget.candidatoNombre || 'Candidato'} · {interviewTarget.ofertaTitulo || 'Oferta'}</p></div><button onClick={() => setInterviewTarget(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+            <div className="mb-5 flex items-center justify-between"><div><h3 className="text-lg font-bold text-slate-900">{editingInterviewId ? 'Reprogramar entrevista' : 'Programar entrevista'}</h3><p className="text-sm text-slate-500">{interviewTarget.candidatoNombre || 'Candidato'} · {interviewTarget.ofertaTitulo || 'Oferta'}</p></div><button onClick={() => { setInterviewTarget(null); setEditingInterviewId(null); }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
             <div className="space-y-4">
               <div><label className="mb-1 block text-xs font-semibold text-slate-700">Fecha y hora</label><input type="datetime-local" value={interviewForm.fechaHora} onChange={e => setInterviewForm({ ...interviewForm, fechaHora: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" /></div>
               <div className="grid grid-cols-2 gap-3"><div><label className="mb-1 block text-xs font-semibold text-slate-700">Modalidad</label><select value={interviewForm.tipo} onChange={e => setInterviewForm({ ...interviewForm, tipo: e.target.value as TipoEntrevista })} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"><option value="VIRTUAL">Virtual</option><option value="PRESENCIAL">Presencial</option><option value="TELEFONICA">Telefónica</option></select></div><div><label className="mb-1 block text-xs font-semibold text-slate-700">Duración (min)</label><input type="number" min="1" value={interviewForm.duracion} onChange={e => setInterviewForm({ ...interviewForm, duracion: Number(e.target.value) })} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" /></div></div>
               <div><label className="mb-1 block text-xs font-semibold text-slate-700">{interviewForm.tipo === 'VIRTUAL' || interviewForm.tipo === 'TELEFONICA' ? 'Enlace o teléfono' : 'Ubicación'}</label><input value={interviewForm.ubicacionOEnlace} onChange={e => setInterviewForm({ ...interviewForm, ubicacionOEnlace: e.target.value })} placeholder={interviewForm.tipo === 'VIRTUAL' ? 'https://meet.google.com/...' : 'Dirección o número de contacto'} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" /></div>
               <div><label className="mb-1 block text-xs font-semibold text-slate-700">Mensaje para el candidato (opcional)</label><textarea rows={3} value={interviewForm.observaciones} onChange={e => setInterviewForm({ ...interviewForm, observaciones: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" placeholder="Temas a tratar, instrucciones..." /></div>
-              <div className="flex justify-end gap-2 pt-2"><Button variant="ghost" size="sm" onClick={() => setInterviewTarget(null)}>Cancelar</Button><Button size="sm" isLoading={isScheduling} onClick={handleScheduleInterview}>Programar entrevista</Button></div>
+              <div className="flex justify-end gap-2 pt-2"><Button variant="ghost" size="sm" onClick={() => { setInterviewTarget(null); setEditingInterviewId(null); }}>Cancelar</Button><Button size="sm" isLoading={isScheduling} onClick={handleScheduleInterview}>{editingInterviewId ? 'Guardar reprogramación' : 'Programar entrevista'}</Button></div>
             </div>
           </div>
         </div>
