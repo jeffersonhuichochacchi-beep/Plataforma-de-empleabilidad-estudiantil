@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
-import type { PostulacionResponse, OfertaResponse, EvaluacionResponse, RecomendacionEvaluacion } from '../types/job.types';
+import type { PostulacionResponse, OfertaResponse, RecomendacionEvaluacion } from '../types/job.types';
 import { Button } from '@/shared/components/Button';
 import toast from 'react-hot-toast';
 

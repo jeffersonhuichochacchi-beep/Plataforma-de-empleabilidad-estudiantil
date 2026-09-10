@@ -100,6 +100,13 @@ public class EntrevistaServiceImpl implements EntrevistaService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<EntrevistaResponse> listarMisEntrevistas(UUID candidatoId, Pageable pageable) {
+        return entrevistaRepository.findByPostulacionCandidatoId(candidatoId, pageable)
+                .map(entrevistaMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public EntrevistaResponse obtenerEntrevista(UUID entrevistaId, UUID usuarioId, String rol) {
         Entrevista entrevista = entrevistaRepository.findByUuid(entrevistaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Entrevista no encontrada"));

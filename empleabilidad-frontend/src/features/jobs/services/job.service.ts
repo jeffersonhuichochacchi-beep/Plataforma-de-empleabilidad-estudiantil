@@ -1,6 +1,6 @@
 import { ofertasApi, postulacionesApi } from '@/core/api';
 import type { PageResponse } from '@/shared/types';
-import type { OfertaResponse, EstadoPostulacion, PostulacionResponse } from '../types/job.types';
+import type { OfertaResponse, EstadoPostulacion, PostulacionResponse, EntrevistaResponse, TipoEntrevista, RecomendacionEvaluacion } from '../types/job.types';
 
 export const jobService = {
   async getPublicJobs(params?: Record<string, any>): Promise<PageResponse<OfertaResponse>> {
@@ -150,6 +150,38 @@ export const jobService = {
   // Empresa: Elimina permanentemente una postulación
   async deleteApplication(uuid: string): Promise<void> {
     await postulacionesApi.delete(`/postulaciones/${uuid}`);
+  },
+
+  async createInterview(postulacionId: string, payload: {
+    fechaHora: string;
+    tipo: TipoEntrevista;
+    ubicacionOEnlace: string;
+    duracion: number;
+    observaciones?: string;
+  }): Promise<EntrevistaResponse> {
+    const { data } = await postulacionesApi.post<EntrevistaResponse>(
+      `/postulaciones/${postulacionId}/entrevistas`, payload
+    );
+    return data;
+  },
+
+  async getMyApplications(params?: { estado?: EstadoPostulacion; page?: number; size?: number }): Promise<PageResponse<PostulacionResponse>> {
+    const { data } = await postulacionesApi.get<PageResponse<PostulacionResponse>>('/postulaciones/mis-postulaciones', { params });
+    return data;
+  },
+
+  async getInterviewsByApplication(postulacionId: string): Promise<PageResponse<EntrevistaResponse>> {
+    const { data } = await postulacionesApi.get<PageResponse<EntrevistaResponse>>(
+      `/postulaciones/${postulacionId}/entrevistas`, { params: { size: 100 } }
+    );
+    return data;
+  },
+
+  async getMyInterviews(params?: { page?: number; size?: number }): Promise<PageResponse<EntrevistaResponse>> {
+    const { data } = await postulacionesApi.get<PageResponse<EntrevistaResponse>>(
+      '/entrevistas/mis-entrevistas', { params }
+    );
+    return data;
   },
 
   // === EVALUACIONES ===

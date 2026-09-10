@@ -55,6 +55,18 @@ public class EntrevistaController {
         return ResponseEntity.ok(entrevistaService.listarEntrevistasPorPostulacion(postulacionId, usuarioId, rol, pageable));
     }
 
+    @GetMapping("/entrevistas/mis-entrevistas")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'PROFESIONAL', 'CANDIDATO')")
+    @Operation(summary = "Listar mis entrevistas", description = "Lista las entrevistas del candidato autenticado")
+    public ResponseEntity<Page<EntrevistaResponse>> listarMisEntrevistas(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size) {
+        int validSize = size > 100 ? 100 : size;
+        Pageable pageable = PageRequest.of(page, validSize);
+        return ResponseEntity.ok(entrevistaService.listarMisEntrevistas(
+                SecurityUtils.getUsuarioLogueadoId(), pageable));
+    }
+
     @GetMapping("/entrevistas/{entrevistaId}")
     @Operation(summary = "Obtener detalle de entrevista")
     public ResponseEntity<EntrevistaResponse> obtenerEntrevista(@PathVariable UUID entrevistaId) {

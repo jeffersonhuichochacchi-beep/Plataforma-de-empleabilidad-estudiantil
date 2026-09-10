@@ -3,11 +3,11 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Users, Search, RefreshCw, FileText, ExternalLink, 
   CheckCircle2, XCircle, Clock, Eye, Briefcase, Mail, 
-  MessageSquare, AlertCircle, ArrowUpRight, Download, X, Trash2
+  MessageSquare, AlertCircle, ArrowUpRight, Download, X, Trash2, CalendarPlus
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { jobService } from '../services/job.service';
-import type { PostulacionResponse, EstadoPostulacion, OfertaResponse } from '../types/job.types';
+import type { PostulacionResponse, EstadoPostulacion, OfertaResponse, TipoEntrevista } from '../types/job.types';
 import { Button } from '@/shared/components/Button';
 import toast from 'react-hot-toast';
 
@@ -68,6 +68,9 @@ export const CompanyCandidatosView: React.FC = () => {
   } | null>(null);
   const [comentarioCambio, setComentarioCambio] = useState('');
   const [viewingCvPostulacion, setViewingCvPostulacion] = useState<PostulacionResponse | null>(null);
+  const [interviewTarget, setInterviewTarget] = useState<PostulacionResponse | null>(null);
+  const [interviewForm, setInterviewForm] = useState({ fechaHora: '', tipo: 'VIRTUAL' as TipoEntrevista, ubicacionOEnlace: '', duracion: 30, observaciones: '' });
+  const [isScheduling, setIsScheduling] = useState(false);
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<PostulacionResponse | null>(null);
@@ -136,6 +139,23 @@ export const CompanyCandidatosView: React.FC = () => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleScheduleInterview = async () => {
+    if (!interviewTarget || !interviewForm.fechaHora || !interviewForm.ubicacionOEnlace) {
+      toast.error('Completa la fecha, modalidad y enlace o ubicación.');
+      return;
+    }
+    setIsScheduling(true);
+    try {
+      await jobService.createInterview(interviewTarget.uuid, { ...interviewForm, fechaHora: new Date(interviewForm.fechaHora).toISOString() });
+      toast.success('Entrevista programada. El candidato podrá verla en su agenda.');
+      setPostulaciones(prev => prev.map(p => p.uuid === interviewTarget.uuid ? { ...p, estado: 'ENTREVISTA' } : p));
+      setInterviewTarget(null);
+      setInterviewForm({ fechaHora: '', tipo: 'VIRTUAL', ubicacionOEnlace: '', duracion: 30, observaciones: '' });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'No se pudo programar la entrevista.');
+    } finally { setIsScheduling(false); }
   };
 
   // Delete Handler
@@ -657,7 +677,7 @@ export const CompanyCandidatosView: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-50 px-6 py-3.5 border-t border-slate-100 flex items-center justify-between">
+            <div className="bg-slate-50 px-6 py-3.5 border-t border-slate-100 flex items-center justify-between gap-3">
               {/* Quick status button */}
               {(NEXT_STATUSES[selectedPostulacion.estado] || []).length > 0 ? (
                 <div className="flex items-center gap-2">
@@ -676,6 +696,14 @@ export const CompanyCandidatosView: React.FC = () => {
                 </div>
               ) : <div />}
 
+              <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => setInterviewTarget(selectedPostulacion)}
+                className="inline-flex items-center gap-1.5"
+              >
+                <CalendarPlus className="h-4 w-4" /> Programar entrevista
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -683,6 +711,22 @@ export const CompanyCandidatosView: React.FC = () => {
               >
                 Cerrar
               </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {interviewTarget && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between"><div><h3 className="text-lg font-bold text-slate-900">Programar entrevista</h3><p className="text-sm text-slate-500">{interviewTarget.candidatoNombre || 'Candidato'} · {interviewTarget.ofertaTitulo || 'Oferta'}</p></div><button onClick={() => setInterviewTarget(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+            <div className="space-y-4">
+              <div><label className="mb-1 block text-xs font-semibold text-slate-700">Fecha y hora</label><input type="datetime-local" value={interviewForm.fechaHora} onChange={e => setInterviewForm({ ...interviewForm, fechaHora: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" /></div>
+              <div className="grid grid-cols-2 gap-3"><div><label className="mb-1 block text-xs font-semibold text-slate-700">Modalidad</label><select value={interviewForm.tipo} onChange={e => setInterviewForm({ ...interviewForm, tipo: e.target.value as TipoEntrevista })} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"><option value="VIRTUAL">Virtual</option><option value="PRESENCIAL">Presencial</option><option value="TELEFONICA">Telefónica</option></select></div><div><label className="mb-1 block text-xs font-semibold text-slate-700">Duración (min)</label><input type="number" min="1" value={interviewForm.duracion} onChange={e => setInterviewForm({ ...interviewForm, duracion: Number(e.target.value) })} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" /></div></div>
+              <div><label className="mb-1 block text-xs font-semibold text-slate-700">{interviewForm.tipo === 'VIRTUAL' || interviewForm.tipo === 'TELEFONICA' ? 'Enlace o teléfono' : 'Ubicación'}</label><input value={interviewForm.ubicacionOEnlace} onChange={e => setInterviewForm({ ...interviewForm, ubicacionOEnlace: e.target.value })} placeholder={interviewForm.tipo === 'VIRTUAL' ? 'https://meet.google.com/...' : 'Dirección o número de contacto'} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-slate-700">Mensaje para el candidato (opcional)</label><textarea rows={3} value={interviewForm.observaciones} onChange={e => setInterviewForm({ ...interviewForm, observaciones: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm" placeholder="Temas a tratar, instrucciones..." /></div>
+              <div className="flex justify-end gap-2 pt-2"><Button variant="ghost" size="sm" onClick={() => setInterviewTarget(null)}>Cancelar</Button><Button size="sm" isLoading={isScheduling} onClick={handleScheduleInterview}>Programar entrevista</Button></div>
             </div>
           </div>
         </div>

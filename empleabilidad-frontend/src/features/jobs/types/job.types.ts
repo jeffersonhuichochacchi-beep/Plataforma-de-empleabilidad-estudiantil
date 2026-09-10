@@ -80,6 +80,24 @@ export interface PostulacionResponse {
   habilidadesEncontradas?: string;
 }
 
+export type TipoEntrevista = 'VIRTUAL' | 'PRESENCIAL' | 'TELEFONICA';
+export type EstadoEntrevista = 'PROGRAMADA' | 'CONFIRMADA' | 'REALIZADA' | 'CANCELADA' | 'NO_ASISTIO' | 'REPROGRAMADA';
+
+export interface EntrevistaResponse {
+  uuid: string;
+  postulacionId: string;
+  entrevistadorId: string;
+  fechaHora: string;
+  duracion: number;
+  tipo: TipoEntrevista;
+  enlace?: string;
+  ubicacion?: string;
+  estado: EstadoEntrevista;
+  observaciones?: string;
+  fechaCreacion?: string;
+  fechaActualizacion?: string;
+}
+
 // Tipos para Evaluaciones
 export type RecomendacionEvaluacion = 'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO' | 'PENDIENTE';
 
