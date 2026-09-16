@@ -13,12 +13,10 @@ import {
   Clock,
   Calendar,
   Mail,
-  Briefcase,
   GraduationCap,
   Building2,
   Download,
   TrendingUp,
-  Users,
   AlertCircle,
   Star,
   MapPin,
@@ -28,7 +26,6 @@ import {
   MessageSquare,
   BarChart2,
   Loader2,
-  ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

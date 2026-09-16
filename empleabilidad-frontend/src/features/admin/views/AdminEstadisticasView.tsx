@@ -1,28 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   TrendingUp,
-  TrendingDown,
   Users,
   Briefcase,
   FileText,
   Building2,
   GraduationCap,
   Star,
-  CheckCircle2,
-  XCircle,
-  Clock,
   Calendar,
   Download,
-  RefreshCw,
-  ChevronDown,
   ArrowUpRight,
   ArrowDownRight,
-  Minus,
   BarChart2,
-  PieChart,
-  Activity,
-  Award,
-  MapPin,
   Zap,
 } from 'lucide-react';
 
@@ -122,56 +111,6 @@ const MODALIDADES = [
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toString();
 
-// ─── Componente: Gráfico de Barras SVG ────────────────────────────────────────
-const BarChart: React.FC<{
-  data: typeof MONTHLY_SERIES;
-  metric: 'usuarios' | 'postulaciones' | 'ofertas';
-  color: string;
-}> = ({ data, metric, color }) => {
-  const [hovered, setHovered] = useState<number | null>(null);
-  const max = Math.max(...data.map(d => d[metric]));
-  const H = 140;
-  const W = 100;
-  const barW = 28;
-  const gap = (W - barW * data.length) / (data.length + 1);
-
-  return (
-    <svg viewBox={`0 0 ${W * data.length / data.length * (data.length * (barW + gap) + gap)} ${H + 24}`}
-      className="w-full" style={{ height: H + 24 }}>
-      {data.map((d, i) => {
-        const val = d[metric];
-        const h = (val / max) * H;
-        const x = gap + i * (barW + gap);
-        const y = H - h;
-        const isHov = hovered === i;
-        return (
-          <g key={i}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(null)}
-            style={{ cursor: 'pointer' }}>
-            {/* Barra de fondo */}
-            <rect x={x} y={0} width={barW} height={H} rx={6} fill="#f1f5f9" />
-            {/* Barra de valor */}
-            <rect x={x} y={y} width={barW} height={h} rx={6}
-              fill={isHov ? color : color + 'cc'}
-              style={{ transition: 'fill 0.15s' }} />
-            {/* Label mes */}
-            <text x={x + barW / 2} y={H + 16} textAnchor="middle"
-              fontSize={8} fill="#94a3b8" fontWeight="600">{d.mes}</text>
-            {/* Tooltip */}
-            {isHov && (
-              <g>
-                <rect x={x - 4} y={y - 24} width={barW + 8} height={20} rx={4} fill="#1e293b" />
-                <text x={x + barW / 2} y={y - 10} textAnchor="middle"
-                  fontSize={8} fill="white" fontWeight="700">{fmt(val)}</text>
-              </g>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-};
 
 // ─── Componente: Donut Chart SVG ──────────────────────────────────────────────
 const DonutChart: React.FC<{ data: { label: string; val: number; color: string; light: string }[] }> = ({ data }) => {
@@ -686,7 +625,7 @@ export const AdminEstadisticasView: React.FC = () => {
             </div>
             <div className="w-px h-12 bg-white/20" />
             <div className="text-center">
-              <p className="text-3xl font-extrabold">{d.aceptados ?? d.entrevistasProgramadas}</p>
+              <p className="text-3xl font-extrabold">{d.entrevistasProgramadas}</p>
               <p className="text-xs text-white/70 mt-1">Entrevistas</p>
             </div>
           </div>
