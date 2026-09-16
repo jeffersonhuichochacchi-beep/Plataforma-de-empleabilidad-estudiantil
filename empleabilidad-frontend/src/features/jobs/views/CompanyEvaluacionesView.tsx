@@ -58,10 +58,15 @@ export const CompanyEvaluacionesView: React.FC = () => {
   const [gradeInput, setGradeInput] = useState<number>(85);
   const [gradeStatus, setGradeStatus] = useState<'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO'>('RECOMENDADO');
   const [feedbackInput, setFeedbackInput] = useState('');
+  const [gradeSaving, setGradeSaving] = useState(false);
 
   // Formulario de nueva evaluación
   const [newEvalPostulacionId, setNewEvalPostulacionId] = useState('');
   const [newEvalTipo, setNewEvalTipo] = useState<TipoEvaluacion>('PRUEBA_TECNICA');
+  const [newEvalPuntaje, setNewEvalPuntaje] = useState<number>(70);
+  const [newEvalRecomendacion, setNewEvalRecomendacion] = useState<'RECOMENDADO' | 'ACEPTABLE' | 'NO_RECOMENDADO'>('RECOMENDADO');
+  const [newEvalComentario, setNewEvalComentario] = useState('');
+  const [createSaving, setCreateSaving] = useState(false);
 
   // Cargar datos reales del backend
   useEffect(() => {
@@ -152,30 +157,6 @@ export const CompanyEvaluacionesView: React.FC = () => {
           }
         }
 
-        // Si no hay evaluaciones, agregar datos de demostración
-        if (allEvaluations.length === 0 && jobs.length > 0) {
-          allEvaluations.push(
-            {
-              id: 'demo-1',
-              candidatoId: 'cand-demo-1',
-              candidatoNombre: 'Demo - Candidato Ejemplo',
-              candidatoEmail: 'demo@ejemplo.com',
-              ofertaId: jobs[0]?.id || 'job-1',
-              ofertaTitulo: jobs[0]?.titulo || 'Desarrollador Full Stack',
-              postulacionId: 'demo-post-1',
-              tipo: 'IA_SCREENING',
-              tituloPrueba: 'Screening con IA (Demo)',
-              puntaje: 88,
-              estado: 'APROBADO',
-              fechaRealizacion: new Date().toISOString(),
-              duracionMinutos: 2,
-              habilidadesEvaluadas: ['React', 'Node.js', 'PostgreSQL'],
-              resumenIa: 'Este es un candidato de demostración. Postula candidatos reales para ver evaluaciones.',
-              cumpleRequerimientos: true,
-              nivelDificultad: 'MID'
-            }
-          );
-        }
 
         setEvaluaciones(allEvaluations);
       } catch (error) {
@@ -224,20 +205,30 @@ export const CompanyEvaluacionesView: React.FC = () => {
   // Manejador para Calificar / Actualizar Nota
   const handleSaveGrade = async () => {
     if (!gradingTarget) return;
-
+    setGradeSaving(true);
     try {
-      // Si tiene evaluacionBackendId, actualizar en el backend
       if (gradingTarget.evaluacionBackendId) {
+        // Actualizar evaluación existente
         await jobService.updateEvaluation(gradingTarget.evaluacionBackendId, {
           puntaje: gradeInput,
           recomendacion: gradeStatus,
           comentario: feedbackInput.trim()
         });
-
-        toast.success(`Evaluación actualizada en el servidor`);
-      } else {
-        // Si es evaluación IA (sin backend ID), solo actualizar localmente
-        toast.success(`Calificación actualizada localmente`);
+        toast.success('Evaluación actualizada correctamente.');
+      } else if (gradingTarget.postulacionId) {
+        // Crear nueva evaluación manual para una postulación IA
+        const res = await jobService.createEvaluation(gradingTarget.postulacionId, {
+          puntaje: gradeInput,
+          recomendacion: gradeStatus,
+          comentario: feedbackInput.trim()
+        });
+        // Actualizar el item con el ID del backend
+        setEvaluaciones(prev => prev.map(item =>
+          item.id === gradingTarget.id
+            ? { ...item, evaluacionBackendId: res.uuid || res.id }
+            : item
+        ));
+        toast.success('Evaluación manual creada correctamente.');
       }
 
       // Actualizar estado local
@@ -247,50 +238,48 @@ export const CompanyEvaluacionesView: React.FC = () => {
           if (gradeStatus === 'RECOMENDADO') nuevoEstado = 'APROBADO';
           else if (gradeStatus === 'NO_RECOMENDADO') nuevoEstado = 'DESCALIFICADO';
           else nuevoEstado = 'EN_REVISION';
-
-          return {
-            ...item,
-            puntaje: gradeInput,
-            estado: nuevoEstado,
-            recomendacion: gradeStatus,
-            comentariosEvaluador: feedbackInput.trim() || item.comentariosEvaluador
-          };
+          return { ...item, puntaje: gradeInput, estado: nuevoEstado, recomendacion: gradeStatus, comentariosEvaluador: feedbackInput.trim() || item.comentariosEvaluador };
         }
         return item;
       }));
 
       setGradingTarget(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al guardar evaluación:', error);
-      toast.error('Error al guardar la evaluación');
+      toast.error(error?.response?.data?.message || 'Error al guardar la evaluación.');
+    } finally {
+      setGradeSaving(false);
     }
   };
 
   // Manejador para Crear / Asignar Evaluación
   const handleCreateEvaluation = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newEvalPostulacionId) {
-      toast.error('Por favor selecciona una postulación');
-      return;
-    }
-
+    if (!newEvalPostulacionId) { toast.error('Por favor selecciona una postulación'); return; }
+    setCreateSaving(true);
     try {
-      // Crear evaluación en el backend
       const response = await jobService.createEvaluation(newEvalPostulacionId, {
-        puntaje: 0,
-        recomendacion: 'PENDIENTE',
-        comentario: 'Evaluación pendiente de calificación'
+        puntaje: newEvalPuntaje,
+        recomendacion: newEvalRecomendacion,
+        comentario: newEvalComentario.trim() || undefined
       });
 
-      toast.success('Evaluación creada exitosamente');
+      toast.success('Evaluación creada exitosamente.');
       setIsCreateModalOpen(false);
+      // Limpiar form
       setNewEvalPostulacionId('');
+      setNewEvalPuntaje(70);
+      setNewEvalRecomendacion('RECOMENDADO');
+      setNewEvalComentario('');
 
-      // Recargar evaluaciones
       const app = postulaciones.find(p => p.uuid === newEvalPostulacionId || p.id === newEvalPostulacionId);
       if (app) {
         const matchingJob = companyJobs.find(j => j.id === app.ofertaId);
+        let estadoEval: EstadoEvaluacion = 'COMPLETADA';
+        if (newEvalRecomendacion === 'RECOMENDADO') estadoEval = 'APROBADO';
+        else if (newEvalRecomendacion === 'NO_RECOMENDADO') estadoEval = 'DESCALIFICADO';
+        else estadoEval = 'EN_REVISION';
+
         const newEval: EvaluacionItem = {
           id: `eval-backend-${response.uuid || response.id}`,
           evaluacionBackendId: response.uuid || response.id,
@@ -301,28 +290,23 @@ export const CompanyEvaluacionesView: React.FC = () => {
           ofertaTitulo: app.ofertaTitulo || matchingJob?.titulo || 'Oferta',
           postulacionId: newEvalPostulacionId,
           tipo: newEvalTipo,
-          tituloPrueba: 'Evaluación Técnica',
-          puntaje: 0,
-          estado: 'EN_PROGRESO',
-          fechaRealizacion: new Date().toISOString(),
+          tituloPrueba: newEvalTipo === 'PRUEBA_TECNICA' ? 'Prueba Técnica' : newEvalTipo === 'PSICOMETRICO' ? 'Evaluación Psicométrica' : 'Entrevista Técnica',
+          puntaje: newEvalPuntaje,
+          estado: estadoEval,
+          fechaRealizacion: response.fechaEvaluacion ? String(response.fechaEvaluacion) : new Date().toISOString(),
           duracionMinutos: 45,
-          habilidadesEvaluadas: ['Pendiente de evaluación'],
-          comentariosEvaluador: 'Evaluación pendiente de calificación',
-          recomendacion: 'PENDIENTE',
+          habilidadesEvaluadas: ['Evaluación técnica', 'Competencias profesionales'],
+          comentariosEvaluador: newEvalComentario.trim(),
+          recomendacion: newEvalRecomendacion,
           nivelDificultad: 'MID'
         };
-
         setEvaluaciones(prev => [newEval, ...prev]);
       }
     } catch (error: any) {
       console.error('Error al crear evaluación:', error);
-      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || 'Error al crear la evaluación';
-      toast.error(errorMsg);
-      
-      // Log adicional para debug
-      if (error?.response?.data) {
-        console.log('Detalles del error del servidor:', error.response.data);
-      }
+      toast.error(error?.response?.data?.message || 'Error al crear la evaluación.');
+    } finally {
+      setCreateSaving(false);
     }
   };
 
@@ -677,8 +661,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                           <Eye className="h-4 w-4" />
                         </button>
 
-                        {item.evaluacionBackendId && (
-                          <button
+                        <button
                             onClick={() => {
                               setGradingTarget(item);
                               setGradeInput(item.puntaje);
@@ -686,11 +669,10 @@ export const CompanyEvaluacionesView: React.FC = () => {
                               setFeedbackInput(item.comentariosEvaluador || '');
                             }}
                             className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center"
-                            title="Calificar o retroalimentar"
+                            title={item.evaluacionBackendId ? 'Actualizar evaluación' : 'Agregar calificación manual'}
                           >
                             <Edit3 className="h-4 w-4" />
                           </button>
-                        )}
                       </td>
                     </tr>
                   );
@@ -867,13 +849,15 @@ export const CompanyEvaluacionesView: React.FC = () => {
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-3">
-              <Button variant="ghost" onClick={() => setGradingTarget(null)}>
+              <Button variant="ghost" onClick={() => setGradingTarget(null)} disabled={gradeSaving}>
                 Cancelar
               </Button>
               <button
                 onClick={handleSaveGrade}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow transition-colors"
+                disabled={gradeSaving}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-sm font-semibold shadow transition-colors inline-flex items-center gap-2"
               >
+                {gradeSaving && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
                 Guardar Calificación
               </button>
             </div>
@@ -912,7 +896,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                   <option value="">Seleccionar candidato ({postulaciones.length})</option>
                   {postulaciones.map(app => (
                     <option key={app.uuid || app.id} value={app.uuid || app.id}>
-                      {app.candidatoNombre || 'Candidato'} - {app.ofertaTitulo}
+                      {app.candidatoNombre || 'Candidato'} — {app.ofertaTitulo}
                     </option>
                   ))}
                 </select>
@@ -933,14 +917,57 @@ export const CompanyEvaluacionesView: React.FC = () => {
                 </select>
               </div>
 
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Puntaje (0–100) *</label>
+                  <span className="text-base font-black text-blue-600">{newEvalPuntaje}%</span>
+                </div>
+                <input
+                  type="range" min="0" max="100"
+                  value={newEvalPuntaje}
+                  onChange={(e) => setNewEvalPuntaje(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Recomendación *
+                </label>
+                <select
+                  value={newEvalRecomendacion}
+                  onChange={(e) => setNewEvalRecomendacion(e.target.value as any)}
+                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                >
+                  <option value="RECOMENDADO">Recomendado</option>
+                  <option value="ACEPTABLE">Aceptable</option>
+                  <option value="NO_RECOMENDADO">No Recomendado</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Comentarios / Retroalimentación
+                </label>
+                <textarea
+                  rows={3}
+                  value={newEvalComentario}
+                  onChange={(e) => setNewEvalComentario(e.target.value)}
+                  placeholder="Observaciones, fortalezas, áreas de mejora..."
+                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                />
+              </div>
+
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-                <Button type="button" variant="ghost" onClick={() => setIsCreateModalOpen(false)}>
+                <Button type="button" variant="ghost" onClick={() => setIsCreateModalOpen(false)} disabled={createSaving}>
                   Cancelar
                 </Button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow transition-colors"
+                  disabled={createSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-sm font-semibold shadow transition-colors inline-flex items-center gap-2"
                 >
+                  {createSaving && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
                   Crear Evaluación
                 </button>
               </div>

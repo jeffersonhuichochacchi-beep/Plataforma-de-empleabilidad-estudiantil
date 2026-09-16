@@ -185,6 +185,13 @@ export const jobService = {
     return data;
   },
 
+  async withdrawApplication(uuid: string, motivo?: string): Promise<PostulacionResponse> {
+    const { data } = await postulacionesApi.delete<PostulacionResponse>(`/postulaciones/${uuid}/retirar`, {
+      params: motivo ? { motivo } : undefined,
+    });
+    return data;
+  },
+
   async getInterviewsByApplication(postulacionId: string): Promise<PageResponse<EntrevistaResponse>> {
     const { data } = await postulacionesApi.get<PageResponse<EntrevistaResponse>>(
       `/postulaciones/${postulacionId}/entrevistas`, {

@@ -61,5 +61,8 @@ public class EvaluacionPostulacion {
         if (uuid == null) {
             uuid = UUID.randomUUID();
         }
+        if (fechaEvaluacion == null) {
+            fechaEvaluacion = new Timestamp(System.currentTimeMillis());
+        }
     }
 }
