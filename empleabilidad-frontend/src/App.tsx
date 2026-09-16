@@ -24,6 +24,7 @@ import { CandidateProfileView } from './features/profile/views/CandidateProfileV
 import { CompanyProfileView } from './features/profile/views/CompanyProfileView';
 import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
 import { AdminOfertasView } from './features/admin/views/AdminOfertasView';
+import { AdminUsuariosView } from './features/admin/views/AdminUsuariosView';
 
 // --- VISTAS PUBLICAS (VISITANTE) ---
 const Inicio = () => (
@@ -118,11 +119,11 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardView />} />
-            <Route path="usuarios" element={<AdminDashboardView />} />
-            <Route path="usuarios/listado" element={<AdminDashboardView />} />
-            <Route path="usuarios/candidatos" element={<AdminDashboardView />} />
-            <Route path="usuarios/empresas" element={<AdminDashboardView />} />
-            <Route path="usuarios/roles" element={<AdminDashboardView />} />
+            <Route path="usuarios" element={<AdminUsuariosView />} />
+            <Route path="usuarios/listado" element={<AdminUsuariosView />} />
+            <Route path="usuarios/candidatos" element={<AdminUsuariosView />} />
+            <Route path="usuarios/empresas" element={<AdminUsuariosView />} />
+            <Route path="usuarios/roles" element={<AdminUsuariosView />} />
             <Route path="ofertas" element={<AdminOfertasView />} />
             <Route path="ofertas/listado" element={<AdminOfertasView />} />
             <Route path="ofertas/categorias" element={<AdminOfertasView />} />
@@ -172,5 +173,3 @@ function App() {
 }
 
 export default App;
-
-
