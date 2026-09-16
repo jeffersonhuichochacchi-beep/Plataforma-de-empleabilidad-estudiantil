@@ -26,6 +26,7 @@ import { AdminDashboardView } from './features/admin/views/AdminDashboardView';
 import { AdminOfertasView } from './features/admin/views/AdminOfertasView';
 import { AdminUsuariosView } from './features/admin/views/AdminUsuariosView';
 import { AdminPostulacionesView } from './features/admin/views/AdminPostulacionesView';
+import { AdminEstadisticasView } from './features/admin/views/AdminEstadisticasView';
 
 // --- VISTAS PUBLICAS (VISITANTE) ---
 const Inicio = () => (
@@ -132,7 +133,7 @@ function App() {
             <Route path="postulaciones/listado" element={<AdminPostulacionesView />} />
             <Route path="postulaciones/estados" element={<AdminPostulacionesView />} />
             <Route path="postulaciones/entrevistas" element={<AdminPostulacionesView />} />
-            <Route path="estadisticas" element={<AdminDashboardView />} />
+            <Route path="estadisticas" element={<AdminEstadisticasView />} />
             <Route path="notificaciones" element={<AdminDashboardView />} />
             <Route path="reportes" element={<AdminDashboardView />} />
             <Route path="configuracion" element={<AdminDashboardView />} />
