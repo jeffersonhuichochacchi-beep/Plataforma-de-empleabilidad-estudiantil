@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   FileText,
   Download,
@@ -19,6 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { adminDashboardService } from '../services/admin-dashboard.service';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 type ReporteEstado = 'LISTO' | 'GENERANDO' | 'ERROR' | 'PROGRAMADO';
@@ -205,6 +206,8 @@ const MOCK_REPORTES: AdminReporte[] = [
     programado: false,
   },
 ];
+// Se conserva la estructura histórica para no alterar el diseño; los datos visibles vienen del backend.
+void MOCK_REPORTES;
 
 // Plantillas de reportes disponibles
 const PLANTILLAS = [
@@ -596,7 +599,8 @@ const ReporteRow: React.FC<{
 
 // ─── Vista Principal ───────────────────────────────────────────────────────────
 export const AdminReportesView: React.FC = () => {
-  const [reportes, setReportes] = useState<AdminReporte[]>(MOCK_REPORTES);
+  const [reportes, setReportes] = useState<AdminReporte[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch]     = useState('');
   const [filterTipo, setFilterTipo] = useState<'TODOS' | ReporteTipo>('TODOS');
   const [filterEstado, setFilterEstado] = useState<'TODOS' | ReporteEstado>('TODOS');
@@ -604,6 +608,23 @@ export const AdminReportesView: React.FC = () => {
   const [selected, setSelected] = useState<AdminReporte | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'TODOS' | 'PROGRAMADOS' | 'MANUALES'>('TODOS');
+
+  const loadReports = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await adminDashboardService.getResumen();
+      const now = new Date().toISOString();
+      const desde = now.slice(0, 10);
+      setReportes([
+        { id: 'live-usuarios', tipo: 'USUARIOS', titulo: 'Resumen actual de usuarios', descripcion: 'Conteo actual de usuarios, candidatos, empresas y cuentas pendientes.', estado: 'LISTO', formato: 'CSV', periodo: 'DIARIO', fechaGeneracion: now, fechaDesde: desde, fechaHasta: desde, tamaño: '—', registros: data.usuarios.totalUsuarios, generadoPor: 'Microservicio de usuarios', programado: false },
+        { id: 'live-ofertas', tipo: 'OFERTAS', titulo: 'Resumen actual de ofertas', descripcion: 'Estado actual de las ofertas laborales registradas en la plataforma.', estado: 'LISTO', formato: 'CSV', periodo: 'DIARIO', fechaGeneracion: now, fechaDesde: desde, fechaHasta: desde, tamaño: '—', registros: data.ofertas.totalOfertas, generadoPor: 'Microservicio de ofertas', programado: false },
+        { id: 'live-postulaciones', tipo: 'POSTULACIONES', titulo: 'Resumen actual de postulaciones', descripcion: 'Postulaciones, entrevistas y estados actuales del proceso de selección.', estado: 'LISTO', formato: 'CSV', periodo: 'DIARIO', fechaGeneracion: now, fechaDesde: desde, fechaHasta: desde, tamaño: '—', registros: data.postulaciones.totalPostulaciones, generadoPor: 'Microservicio de postulaciones', programado: false },
+      ]);
+    } catch { toast.error('No se pudieron cargar los datos de reportes'); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { void loadReports(); }, [loadReports]);
 
   // Estadísticas
   const stats = useMemo(() => ({
@@ -630,7 +651,13 @@ export const AdminReportesView: React.FC = () => {
     return [...list].sort((a, b) => new Date(b.fechaGeneracion).getTime() - new Date(a.fechaGeneracion).getTime());
   }, [reportes, search, filterTipo, filterEstado, filterPeriodo, activeTab]);
 
-  const handleDownload = (r: AdminReporte) => toast.success(`Descargando "${r.titulo}" en formato ${r.formato}...`);
+  const handleDownload = (r: AdminReporte) => {
+    const row = r.tipo === 'USUARIOS' ? ['Usuarios', r.registros, '—'] : r.tipo === 'OFERTAS' ? ['Ofertas', r.registros, '—'] : ['Postulaciones', r.registros, '—'];
+    const csv = ['Reporte,Registros,Fecha', row.join(',')].join('\n');
+    const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a'); link.href = url; link.download = `${r.tipo.toLowerCase()}-reporte.csv`; link.click(); URL.revokeObjectURL(url);
+    toast.success(`Reporte descargado en formato CSV`);
+  };
   const handleDelete   = (id: string) => { setReportes(p => p.filter(r => r.id !== id)); if (selected?.id === id) setSelected(null); toast.success('Reporte eliminado'); };
   const handleRetry    = (id: string) => { setReportes(p => p.map(r => r.id === id ? { ...r, estado: 'GENERANDO' } : r)); toast.success('Reintentando generación...'); };
   const handleCreate   = (r: AdminReporte) => { setReportes(p => [r, ...p]); };
@@ -653,7 +680,7 @@ export const AdminReportesView: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => toast.success('Actualizando estado de reportes...')}
+            onClick={() => void loadReports()}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
           >
             <RefreshCw className="w-4 h-4 text-slate-500" />
@@ -791,7 +818,9 @@ export const AdminReportesView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-16 text-center text-sm text-slate-500"><Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-indigo-500" />Cargando reportes reales...</div>
+          ) : filtered.length === 0 ? (
                   <tr><td colSpan={8} className="py-16 text-center">
                     <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                     <p className="text-sm font-semibold text-slate-600">Sin reportes</p>
