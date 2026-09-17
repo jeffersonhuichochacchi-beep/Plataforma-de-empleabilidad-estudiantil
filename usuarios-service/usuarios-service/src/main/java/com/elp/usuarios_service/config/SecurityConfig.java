@@ -38,6 +38,7 @@ public class SecurityConfig {
                     "/api/auth/registro/empresa",
                     "/api/consultas/**",
                     "/api/admin/dashboard/resumen",
+                    "/api/admin/usuarios/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs/**"

@@ -28,6 +28,7 @@ import {
   Building
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { adminUsuariosService } from '../services/admin-usuarios.service';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 export type UserRole = 'ESTUDIANTE' | 'PROFESIONAL' | 'EMPRESA' | 'RECLUTADOR' | 'ADMINISTRADOR';
@@ -200,6 +201,7 @@ export const AdminUsuariosView: React.FC = () => {
 
   // Estados principales
   const [users, setUsers] = useState<AdminUserItem[]>(INITIAL_USERS);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<'TODOS' | UserRole>('TODOS');
   const [selectedStatus, setSelectedStatus] = useState<'TODOS' | UserStatus>('TODOS');
@@ -318,9 +320,28 @@ export const AdminUsuariosView: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm, selectedRole, selectedStatus, activeTab]);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadUsers = async () => {
+      setIsLoadingUsers(true);
+      try {
+        const response = await adminUsuariosService.listar({ size: 500 });
+        if (mounted) setUsers(response.content);
+      } catch {
+        if (mounted) toast.error('No se pudo cargar la lista de usuarios');
+      } finally {
+        if (mounted) setIsLoadingUsers(false);
+      }
+    };
+    void loadUsers();
+    return () => { mounted = false; };
+  }, []);
+
   // Acciones de Usuario
-  const handleToggleBlock = (userItem: AdminUserItem) => {
+  const handleToggleBlock = async (userItem: AdminUserItem) => {
     const newStatus: UserStatus = userItem.estadoCuenta === 'BLOQUEADA' ? 'ACTIVA' : 'BLOQUEADA';
+    try { await adminUsuariosService.cambiarBloqueo(userItem.id, newStatus === 'BLOQUEADA'); }
+    catch { toast.error('No se pudo actualizar el estado de la cuenta'); return; }
     setUsers(prev => prev.map(u => u.id === userItem.id ? { ...u, estadoCuenta: newStatus } : u));
     if (newStatus === 'BLOQUEADA') {
       toast.error(`Usuario ${userItem.nombreCompleto} ha sido bloqueado.`);
@@ -332,7 +353,9 @@ export const AdminUsuariosView: React.FC = () => {
     }
   };
 
-  const handleVerifyEmpresa = (userItem: AdminUserItem) => {
+  const handleVerifyEmpresa = async (userItem: AdminUserItem) => {
+    try { await adminUsuariosService.verificarEmpresa(userItem.id); }
+    catch { toast.error('No se pudo verificar la empresa'); return; }
     setUsers(prev => prev.map(u => u.id === userItem.id ? { ...u, verificada: true, estadoCuenta: 'ACTIVA' } : u));
     toast.success(`Empresa ${userItem.nombreCompleto} verificada correctamente.`);
     if (detailUser?.id === userItem.id) {
@@ -340,19 +363,33 @@ export const AdminUsuariosView: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = (userItem: AdminUserItem) => {
+  const handleDeleteUser = async (userItem: AdminUserItem) => {
     if (!window.confirm(`¿Estás seguro de eliminar permanentemente al usuario ${userItem.nombreCompleto}?`)) return;
+    try { await adminUsuariosService.eliminar(userItem.id); }
+    catch { toast.error('No se pudo eliminar el usuario'); return; }
     setUsers(prev => prev.filter(u => u.id !== userItem.id));
     toast.success('Usuario eliminado del sistema.');
     if (detailUser?.id === userItem.id) setDetailUser(null);
   };
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nombreCompleto.trim() || !formData.email.trim()) {
       toast.error('Nombre y Correo electrónico son obligatorios');
       return;
     }
+
+    try {
+      const created = await adminUsuariosService.crear({
+        nombreCompleto: formData.nombreCompleto.trim(), email: formData.email.trim(), rol: formData.rol,
+        telefono: formData.telefono, ruc: formData.ruc, sector: formData.sector,
+      });
+      setUsers(prev => [created, ...prev]);
+      toast.success('Usuario creado satisfactoriamente. Contraseña temporal: Temporal123!');
+      setIsNewUserModalOpen(false);
+      setFormData({ nombreCompleto: '', email: '', rol: 'ESTUDIANTE', telefono: '', carrera: '', universidad: '', razonSocial: '', ruc: '', sector: '' });
+      return;
+    } catch { toast.error('No se pudo crear el usuario. Verifica el rol y los datos.'); return; }
 
     const newUser: AdminUserItem = {
       id: `u-${Date.now()}`,
@@ -842,7 +879,9 @@ export const AdminUsuariosView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {paginatedUsers.length === 0 ? (
+                  {isLoadingUsers ? (
+                    <tr><td colSpan={6} className="py-12 text-center text-sm text-slate-500"><span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent align-middle" /> <span className="ml-2">Cargando usuarios...</span></td></tr>
+                  ) : paginatedUsers.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="text-center py-12">
                         <div className="max-w-xs mx-auto text-center">
