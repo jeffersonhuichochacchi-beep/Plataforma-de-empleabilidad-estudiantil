@@ -20,6 +20,11 @@ export const ofertasPublicApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+export const usuariosPublicApi = axios.create({
+  baseURL: 'http://localhost:8081/api',
+  headers: { 'Content-Type': 'application/json' },
+});
+
 export const postulacionesApi = axios.create({
   baseURL: 'http://localhost:8083/api',
   headers: { 'Content-Type': 'application/json' },

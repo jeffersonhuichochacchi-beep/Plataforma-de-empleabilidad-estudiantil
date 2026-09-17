@@ -51,6 +51,7 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/admin/dashboard/resumen").permitAll()
                 .requestMatchers("/api/postulaciones/*/cv", "/api/postulaciones/{uuid}/cv").permitAll()
+                .requestMatchers("/api/admin/postulaciones/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

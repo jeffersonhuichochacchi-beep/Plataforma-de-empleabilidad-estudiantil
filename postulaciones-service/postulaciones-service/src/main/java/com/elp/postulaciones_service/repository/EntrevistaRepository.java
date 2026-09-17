@@ -20,4 +20,5 @@ public interface EntrevistaRepository extends JpaRepository<Entrevista, UUID> {
            countQuery = "select count(e) from Entrevista e where e.postulacion.candidatoId = :candidatoId")
     Page<Entrevista> findByPostulacionCandidatoId(@Param("candidatoId") UUID candidatoId, Pageable pageable);
     void deleteByPostulacion(Postulacion postulacion);
+    Optional<Entrevista> findFirstByPostulacionOrderByFechaHoraAsc(Postulacion postulacion);
 }

@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { adminPostulacionesService } from '../services/admin-postulaciones.service';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 export type EstadoPostulacion =
@@ -241,6 +242,7 @@ const MOCK_POSTULACIONES: AdminPostulacion[] = [
     notaInterna: 'Perfil senior. Evaluación técnica pendiente.',
   },
 ];
+void MOCK_POSTULACIONES;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const ESTADO_CONFIG: Record<EstadoPostulacion, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
@@ -476,7 +478,8 @@ export const AdminPostulacionesView: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [postulaciones, setPostulaciones] = useState<AdminPostulacion[]>(MOCK_POSTULACIONES);
+  const [postulaciones, setPostulaciones] = useState<AdminPostulacion[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstado, setSelectedEstado] = useState<'TODOS' | EstadoPostulacion>('TODOS');
   const [selectedModalidad, setSelectedModalidad] = useState<'TODOS' | 'REMOTO' | 'HIBRIDO' | 'PRESENCIAL'>('TODOS');
@@ -548,7 +551,15 @@ export const AdminPostulacionesView: React.FC = () => {
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedEstado, selectedModalidad, activeTab]);
 
-  const handleUpdateEstado = (id: string, estado: EstadoPostulacion) => {
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => { setLoading(true); try { const response = await adminPostulacionesService.listar(); if (mounted) setPostulaciones(response.content); } catch { if (mounted) toast.error('No se pudieron cargar las postulaciones'); } finally { if (mounted) setLoading(false); } };
+    void load(); return () => { mounted = false; };
+  }, []);
+
+  const handleUpdateEstado = async (id: string, estado: EstadoPostulacion) => {
+    const apiEstado: Record<EstadoPostulacion, string> = { PENDIENTE: 'ENVIADA', EN_REVISION: 'EN_REVISION', PRESELECCIONADO: 'PRESELECCIONADA', ENTREVISTA_PROGRAMADA: 'ENTREVISTA', OFERTA_ENVIADA: 'EVALUACION', ACEPTADO: 'SELECCIONADA', RECHAZADO: 'RECHAZADA', RETIRADO: 'RETIRADA' };
+    try { await adminPostulacionesService.cambiarEstado(id, apiEstado[estado]); } catch { toast.error('No se pudo actualizar el estado'); return; }
     setPostulaciones(prev => prev.map(p => p.id === id ? { ...p, estado, fechaActualizacion: new Date().toISOString() } : p));
     toast.success(`Estado actualizado a "${ESTADO_CONFIG[estado].label}"`);
   };
@@ -887,7 +898,9 @@ export const AdminPostulacionesView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {paginated.length === 0 ? (
+                  {loading ? (
+                    <tr><td colSpan={7} className="py-12 text-center text-sm text-slate-500"><Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-indigo-500" />Cargando postulaciones reales...</td></tr>
+                  ) : paginated.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-16 text-center">
                         <div className="max-w-xs mx-auto">
