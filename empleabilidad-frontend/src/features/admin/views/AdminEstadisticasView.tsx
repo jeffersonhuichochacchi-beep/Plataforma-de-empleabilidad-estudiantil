@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   TrendingUp,
   Users,
@@ -14,6 +14,7 @@ import {
   BarChart2,
   Zap,
 } from 'lucide-react';
+import { adminDashboardService } from '../services/admin-dashboard.service';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 type Periodo = '7d' | '30d' | '90d' | '1y';
@@ -230,7 +231,11 @@ const KpiCard: React.FC<{
 export const AdminEstadisticasView: React.FC = () => {
   const [periodo, setPeriodo] = useState<Periodo>('30d');
   const [activeMetric, setActiveMetric] = useState<'usuarios' | 'postulaciones' | 'ofertas'>('postulaciones');
-  const d = DATA_BY_PERIOD[periodo];
+  const [live, setLive] = useState<Awaited<ReturnType<typeof adminDashboardService.getResumen>> | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { let mounted = true; const load = async () => { try { const data = await adminDashboardService.getResumen(); if (mounted) setLive(data); } catch { /* Mantiene la vista disponible si un servicio está temporalmente fuera de línea. */ } finally { if (mounted) setLoading(false); } }; void load(); const timer = window.setInterval(load, 30000); return () => { mounted = false; window.clearInterval(timer); }; }, []);
+  const d = live ? { nuevosUsuarios: live.usuarios.totalUsuarios, usuariosDelta: 0, ofertasActivas: live.ofertas.ofertasPublicadas, ofertasDelta: 0, postulaciones: live.postulaciones.totalPostulaciones, postulacionesDelta: 0, tasaConversion: live.postulaciones.totalPostulaciones ? Math.round((live.postulaciones.seleccionadas / live.postulaciones.totalPostulaciones) * 1000) / 10 : 0, conversionDelta: 0, matchPromedio: 0, empresasRegistradas: live.usuarios.empresas, estudiantesActivos: live.usuarios.candidatos, entrevistasProgramadas: live.postulaciones.totalEntrevistas } : DATA_BY_PERIOD[periodo];
+  const estadoData = useMemo(() => live ? [{ label: 'Preseleccionados', val: live.postulaciones.preseleccionadas, color: '#6366f1', light: '#eef2ff' }, { label: 'Con Entrevista', val: live.postulaciones.entrevistas, color: '#8b5cf6', light: '#f5f3ff' }, { label: 'Aceptados', val: live.postulaciones.seleccionadas, color: '#10b981', light: '#ecfdf5' }, { label: 'Rechazados', val: live.postulaciones.rechazadas, color: '#f43f5e', light: '#fff1f2' }, { label: 'Pendientes', val: live.postulaciones.enviadas + live.postulaciones.enRevision, color: '#f59e0b', light: '#fffbeb' }] : ESTADOS_POSTULACION, [live]);
 
   const periodoLabel: Record<Periodo, string> = {
     '7d': 'Últimos 7 días', '30d': 'Últimos 30 días',
@@ -246,6 +251,11 @@ export const AdminEstadisticasView: React.FC = () => {
     usuarios: '#6366f1',
     postulaciones: '#8b5cf6',
     ofertas: '#06b6d4',
+  };
+  const exportStats = () => {
+    if (!live) return;
+    const csv = `Métrica;Valor\r\nUsuarios;${live.usuarios.totalUsuarios}\r\nCandidatos;${live.usuarios.candidatos}\r\nEmpresas;${live.usuarios.empresas}\r\nOfertas publicadas;${live.ofertas.ofertasPublicadas}\r\nPostulaciones;${live.postulaciones.totalPostulaciones}\r\nEntrevistas;${live.postulaciones.totalEntrevistas}`;
+    const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = 'estadisticas-plataforma.csv'; link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); 
   };
 
   return (
@@ -286,7 +296,8 @@ export const AdminEstadisticasView: React.FC = () => {
           </div>
 
           <button
-            onClick={() => {}}
+            onClick={exportStats}
+            disabled={loading || !live}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
           >
             <Download className="w-4 h-4 text-slate-500" />
@@ -411,11 +422,11 @@ export const AdminEstadisticasView: React.FC = () => {
           <p className="text-xs text-slate-500 mb-5">Distribución actual del pipeline</p>
 
           <div className="flex justify-center mb-5">
-            <DonutChart data={ESTADOS_POSTULACION} />
+            <DonutChart data={estadoData} />
           </div>
 
           <div className="space-y-2.5">
-            {ESTADOS_POSTULACION.map((e, i) => (
+            {estadoData.map((e, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: e.color }} />
                 <span className="text-xs text-slate-600 flex-1">{e.label}</span>
