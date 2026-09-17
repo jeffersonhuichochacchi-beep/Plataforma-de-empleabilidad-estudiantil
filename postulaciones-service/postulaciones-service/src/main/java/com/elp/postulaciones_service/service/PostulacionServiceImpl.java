@@ -142,6 +142,11 @@ public class PostulacionServiceImpl implements PostulacionService {
         // 5. Guardar postulación
         try {
             postulacion = postulacionRepository.saveAndFlush(postulacion);
+            try {
+                ofertasClient.registrarPostulacion(postulacion.getOfertaId(), jwt);
+            } catch (Exception e) {
+                log.warn("No se pudo actualizar el contador de postulaciones de la oferta {}", postulacion.getOfertaId(), e);
+            }
             log.info("Postulación creada exitosamente con ID: {}", postulacion.getUuid());
         } catch (DataIntegrityViolationException e) {
             throw new DuplicatePostulationException("El candidato ya tiene una postulacion activa para esta oferta.");

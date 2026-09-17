@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,5 +37,15 @@ public class OfertaInternaController {
                 .build();
 
         return ResponseEntity.ok(resumen);
+    }
+
+    @PatchMapping("/{uuid}/postulaciones")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> registrarPostulacion(@PathVariable UUID uuid) {
+        Oferta oferta = ofertaRepository.findById(uuid)
+                .orElseThrow(() -> new ResourceNotFoundException("Oferta no encontrada con ID: " + uuid));
+        oferta.setNumeroPostulaciones((oferta.getNumeroPostulaciones() == null ? 0 : oferta.getNumeroPostulaciones()) + 1);
+        ofertaRepository.save(oferta);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -286,6 +286,7 @@ public class OfertaServiceImpl implements OfertaService {
                         empresaId, estado, soloActivas), pageable)
                 .map(oferta -> {
                     actualizarExpiracionAlVuelo(oferta);
+                    oferta.setNumeroPostulaciones(Math.toIntExact(ofertaRepository.countPostulaciones(oferta.getId())));
                     return ofertaMapper.toResponse(oferta, null); // Sin requisitos completos para resumen
                 });
     }

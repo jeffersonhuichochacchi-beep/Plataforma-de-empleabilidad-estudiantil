@@ -23,6 +23,18 @@ import { jobService } from '../../jobs/services/job.service';
 import type { OfertaResponse } from '../../jobs/types/job.types';
 import type { PageResponse } from '@/shared/types';
 import { ViewJobModal } from '../../jobs/components/ViewJobModal';
+import { ofertasApi, ofertasPublicApi } from '@/core/api';
+
+type AdminCategoria = { id: string; nombre: string; descripcion?: string; activo?: boolean };
+
+const CategoriasLiveView = () => {
+  const [categorias, setCategorias] = useState<AdminCategoria[]>([]);
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => { setLoading(true); try { const { data } = await ofertasPublicApi.get<{ content: AdminCategoria[] }>('/categorias', { params: { size: 100 } }); setCategorias(data.content); } catch { toast.error('No se pudieron cargar las categorías'); } finally { setLoading(false); } }, []);
+  useEffect(() => { void load(); }, [load]);
+  const create = async () => { const nombre = window.prompt('Nombre de la nueva categoría:'); if (!nombre?.trim()) return; try { await ofertasApi.post('/categorias', { nombre: nombre.trim(), activo: true }); toast.success('Categoría creada'); void load(); } catch { toast.error('No se pudo crear la categoría'); } };
+  return <div className="space-y-5"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Tag className="w-5 h-5 text-violet-600" /><span className="text-base font-semibold text-slate-700">{categorias.length} categorías registradas</span></div><button onClick={() => void create()} className="flex items-center gap-2 border border-violet-300 text-violet-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-violet-50 transition-colors"><Plus className="w-4 h-4" /> Nueva Categoría</button></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{loading ? <div className="col-span-full py-10 text-center text-slate-500">Cargando categorías...</div> : categorias.map((cat, index) => { const style = CATEGORIAS_DATA[index % CATEGORIAS_DATA.length]; return <div key={cat.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group"><div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${style.color} flex items-center justify-center text-2xl mb-4 shadow-lg group-hover:scale-110 transition-transform`}>{style.icono}</div><h3 className="font-semibold text-slate-800 mb-1">{cat.nombre}</h3><p className="text-xs text-slate-500 line-clamp-2">{cat.descripcion || 'Categoría de ofertas laborales'}</p><div className="flex items-center gap-1 text-xs text-emerald-600 mt-2"><TrendingUp className="w-3 h-3" /> {cat.activo === false ? 'Inactiva' : 'Activa'}</div></div>; })}</div></div>;
+};
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 type EstadoFiltro = 'Todos' | 'PENDIENTE_APROBACION' | 'PUBLICADA' | 'BORRADOR' | 'RECHAZADA' | 'PAUSADA' | 'CERRADA';
@@ -119,6 +131,8 @@ const CategoriasView = () => (
 );
 
 // ─── Modal de Rechazo ──────────────────────────────────────────────────────────
+void CategoriasView;
+
 const RechazarModal = ({
   titulo,
   onConfirm,
@@ -520,7 +534,7 @@ export const AdminOfertasView = () => {
           </div>
         </>
       ) : (
-        <CategoriasView />
+        <CategoriasLiveView />
       )}
     </div>
   );

@@ -14,6 +14,12 @@ export const ofertasApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Consultas públicas: no envían un JWT posiblemente vencido.
+export const ofertasPublicApi = axios.create({
+  baseURL: 'http://localhost:8082/api',
+  headers: { 'Content-Type': 'application/json' },
+});
+
 export const postulacionesApi = axios.create({
   baseURL: 'http://localhost:8083/api',
   headers: { 'Content-Type': 'application/json' },

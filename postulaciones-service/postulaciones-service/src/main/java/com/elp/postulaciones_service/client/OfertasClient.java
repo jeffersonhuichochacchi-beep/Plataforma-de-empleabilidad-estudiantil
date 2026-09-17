@@ -37,4 +37,9 @@ public class OfertasClient {
                 })
                 .body(OfertaResumenDTO.class);
     }
+
+    public void registrarPostulacion(UUID ofertaId, String jwtToken) {
+        restClient.patch().uri(ofertasServiceUrl + "/api/ofertas/internos/{uuid}/postulaciones", ofertaId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtToken).retrieve().toBodilessEntity();
+    }
 }
