@@ -37,6 +37,10 @@ const toUser = (user: UsuarioApiResponse): AdminUserItem => ({
 });
 
 export const adminUsuariosService = {
+  resumenRoles: async () => {
+    const { data } = await api.get<Record<string, number>>('/admin/usuarios/roles/resumen');
+    return data;
+  },
   crear: async (payload: { nombreCompleto: string; email: string; rol: UserRole; telefono?: string; ruc?: string; sector?: string }) => {
     const { data } = await api.post<UsuarioApiResponse>('/admin/usuarios', payload);
     return toUser(data);

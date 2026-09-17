@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/usuarios")
@@ -67,6 +68,17 @@ public class AdminUsuariosController {
         Pageable pageable = PageRequest.of(Math.max(page, 0), safeSize, Sort.by(Sort.Direction.DESC, "fechaRegistro"));
         return usuarioRepository.buscarAdministrativos(q == null ? "" : q.trim().toLowerCase(), rol, estado, pageable)
             .map(AdminUsuarioResponse::from);
+    }
+
+    @GetMapping("/roles/resumen")
+    public Map<String, Long> resumenRoles() {
+        return Map.of(
+            "ADMINISTRADOR", usuarioRepository.countByRol(Rol.ADMINISTRADOR),
+            "EMPRESA", usuarioRepository.countByRol(Rol.EMPRESA),
+            "RECLUTADOR", usuarioRepository.countByRol(Rol.RECLUTADOR),
+            "ESTUDIANTE", usuarioRepository.countByRol(Rol.ESTUDIANTE),
+            "PROFESIONAL", usuarioRepository.countByRol(Rol.PROFESIONAL)
+        );
     }
 
     @PatchMapping("/{id}/bloqueo")

@@ -202,6 +202,7 @@ export const AdminUsuariosView: React.FC = () => {
   // Estados principales
   const [users, setUsers] = useState<AdminUserItem[]>(INITIAL_USERS);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [roleCounts, setRoleCounts] = useState<Record<string, number>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<'TODOS' | UserRole>('TODOS');
   const [selectedStatus, setSelectedStatus] = useState<'TODOS' | UserStatus>('TODOS');
@@ -327,6 +328,8 @@ export const AdminUsuariosView: React.FC = () => {
       try {
         const response = await adminUsuariosService.listar({ size: 500 });
         if (mounted) setUsers(response.content);
+        const roles = await adminUsuariosService.resumenRoles();
+        if (mounted) setRoleCounts(roles);
       } catch {
         if (mounted) toast.error('No se pudo cargar la lista de usuarios');
       } finally {
@@ -693,7 +696,7 @@ export const AdminUsuariosView: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1">Control maestro total del sistema, auditorías y configuración.</p>
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-medium">Asignados:</span>
-                <span className="font-bold text-slate-800">1 Usuario</span>
+                <span className="font-bold text-slate-800">{roleCounts.ADMINISTRADOR ?? 0} Usuarios</span>
               </div>
             </div>
 
@@ -705,7 +708,7 @@ export const AdminUsuariosView: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1">Publicación de empleos, gestión de postulantes y entrevistas.</p>
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-medium">Asignados:</span>
-                <span className="font-bold text-slate-800">{users.filter(u => u.rol === 'EMPRESA').length} Empresas</span>
+                <span className="font-bold text-slate-800">{roleCounts.EMPRESA ?? 0} Empresas</span>
               </div>
             </div>
 
@@ -717,7 +720,7 @@ export const AdminUsuariosView: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1">Filtrado y evaluación técnica de talento para ofertas asignadas.</p>
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-medium">Asignados:</span>
-                <span className="font-bold text-slate-800">{users.filter(u => u.rol === 'RECLUTADOR').length} Reclutadores</span>
+                <span className="font-bold text-slate-800">{roleCounts.RECLUTADOR ?? 0} Reclutadores</span>
               </div>
             </div>
 
@@ -729,7 +732,7 @@ export const AdminUsuariosView: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1">Postulación, carga de currículum y seguimiento en tiempo real.</p>
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-medium">Asignados:</span>
-                <span className="font-bold text-slate-800">{stats.candidatos} Alumnos</span>
+                <span className="font-bold text-slate-800">{(roleCounts.ESTUDIANTE ?? 0) + (roleCounts.PROFESIONAL ?? 0)} Alumnos</span>
               </div>
             </div>
           </div>
