@@ -7,8 +7,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.elp.usuarios_service.model.UsuarioBase;
+import com.elp.usuarios_service.model.enums.EstadoCuenta;
+import com.elp.usuarios_service.model.enums.Rol;
 
 @Repository
 public interface UsuarioBaseRepository extends JpaRepository<UsuarioBase, UUID> {
     Optional<UsuarioBase> findByEmail(String email);
+    long countByActivoTrue();
+    long countByEstadoCuenta(EstadoCuenta estadoCuenta);
+    long countByRol(Rol rol);
 }

@@ -30,4 +30,6 @@ public interface PostulacionRepository extends JpaRepository<Postulacion, UUID> 
     Page<Postulacion> findByEmpresaIdAndEstado(UUID empresaId, EstadoPostulacion estado, Pageable pageable);
 
     Page<Postulacion> findByEstado(EstadoPostulacion estado, Pageable pageable);
+
+    long countByEstado(EstadoPostulacion estado);
 }
