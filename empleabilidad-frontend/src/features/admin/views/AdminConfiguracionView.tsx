@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings,
   Shield,
@@ -28,6 +28,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { api, usuariosPublicApi } from '@/core/api';
 
 // ─── Pestañas ──────────────────────────────────────────────────────────────────
 type TabType = 'general' | 'seguridad' | 'empleabilidad' | 'ia' | 'notificaciones' | 'sistema';
@@ -123,6 +124,23 @@ export const AdminConfiguracionView: React.FC = () => {
     autoPurgeLogsDias: 60,
   });
 
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const { data } = await usuariosPublicApi.get<Record<string, unknown>>('/admin/configuracion');
+        if (!mounted) return;
+        if (data.general) setGeneralConfig(current => ({ ...current, ...(data.general as Partial<typeof generalConfig>) }));
+        if (data.seguridad) setSeguridadConfig(current => ({ ...current, ...(data.seguridad as Partial<typeof seguridadConfig>) }));
+        if (data.empleabilidad) setEmpleabilidadConfig(current => ({ ...current, ...(data.empleabilidad as Partial<typeof empleabilidadConfig>) }));
+        if (data.ia) setIaConfig(current => ({ ...current, ...(data.ia as Partial<typeof iaConfig>) }));
+        if (data.notificaciones) setNotifConfig(current => ({ ...current, ...(data.notificaciones as Partial<typeof notifConfig>) }));
+        if (data.sistema) setSistemaConfig(current => ({ ...current, ...(data.sistema as Partial<typeof sistemaConfig>) }));
+      } catch { if (mounted) toast.error('No se pudo cargar la configuración guardada'); }
+    };
+    void load(); return () => { mounted = false; };
+  }, []);
+
   const markChanged = () => setHasChanges(true);
 
   // Simulación de Guardado
@@ -134,6 +152,16 @@ export const AdminConfiguracionView: React.FC = () => {
       toast.success('Configuración guardada exitosamente');
     }, 800);
   };
+
+  const handleSaveBackend = async () => {
+    setSaving(true);
+    try {
+      await api.put('/admin/configuracion', { general: generalConfig, seguridad: seguridadConfig, empleabilidad: empleabilidadConfig, ia: iaConfig, notificaciones: notifConfig, sistema: sistemaConfig });
+      setHasChanges(false); toast.success('Configuración guardada exitosamente');
+    } catch { toast.error('No se pudo guardar la configuración'); }
+    finally { setSaving(false); }
+  };
+  void handleSave;
 
   // Simulación de Reset
   const handleReset = () => {
@@ -206,7 +234,7 @@ export const AdminConfiguracionView: React.FC = () => {
           </button>
 
           <button
-            onClick={handleSave}
+            onClick={handleSaveBackend}
             disabled={saving}
             className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50"
           >
@@ -1384,7 +1412,7 @@ export const AdminConfiguracionView: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleSave}
+            onClick={handleSaveBackend}
             disabled={saving}
             className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-slate-900 bg-white hover:bg-slate-100 rounded-xl transition-all shadow-sm"
           >
