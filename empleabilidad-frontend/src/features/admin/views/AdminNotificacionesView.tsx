@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Bell,
   BellOff,
@@ -25,6 +25,7 @@ import {
   Send,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { adminDashboardService } from '../services/admin-dashboard.service';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 type NotifTipo =
@@ -55,6 +56,16 @@ export interface AdminNotificacion {
   accionLabel?: string;
   accionPath?: string;
 }
+
+type LiveSummary = Awaited<ReturnType<typeof adminDashboardService.getResumen>>;
+const buildLiveNotifications = (data: LiveSummary): AdminNotificacion[] => {
+  const now = new Date().toISOString();
+  const result: AdminNotificacion[] = [];
+  if (data.usuarios.usuariosPendientes > 0) result.push({ id: 'live-users-pending', tipo: 'NUEVO_USUARIO', prioridad: 'ALTA', titulo: 'Usuarios pendientes de verificación', descripcion: `Hay ${data.usuarios.usuariosPendientes} cuenta(s) pendientes de revisión.`, leida: false, fijada: false, fecha: now, accionLabel: 'Revisar usuarios', accionPath: '/admin/usuarios' });
+  if (data.ofertas.ofertasPendientes > 0) result.push({ id: 'live-jobs-pending', tipo: 'OFERTA_PENDIENTE', prioridad: 'MEDIA', titulo: 'Ofertas pendientes de aprobación', descripcion: `Hay ${data.ofertas.ofertasPendientes} oferta(s) esperando revisión administrativa.`, leida: false, fijada: false, fecha: now, accionLabel: 'Revisar ofertas', accionPath: '/admin/ofertas/listado' });
+  result.push({ id: 'live-postulations', tipo: 'NUEVA_POSTULACION', prioridad: 'MEDIA', titulo: 'Resumen de postulaciones actualizado', descripcion: `La plataforma registra ${data.postulaciones.totalPostulaciones} postulación(es) y ${data.postulaciones.totalEntrevistas} entrevista(s).`, leida: true, fijada: false, fecha: now, accionLabel: 'Gestionar postulaciones', accionPath: '/admin/postulaciones' });
+  return result;
+};
 
 // ─── Mock Data ─────────────────────────────────────────────────────────────────
 const MOCK_NOTIFICACIONES: AdminNotificacion[] = [
@@ -208,6 +219,8 @@ const MOCK_NOTIFICACIONES: AdminNotificacion[] = [
 ];
 
 // Configuración de preferencias de notificación
+void MOCK_NOTIFICACIONES;
+
 const PREFS_INICIAL = {
   NUEVA_POSTULACION: true,
   NUEVA_EMPRESA: true,
@@ -375,7 +388,8 @@ const NotifCard: React.FC<{
 
 // ─── Vista Principal ───────────────────────────────────────────────────────────
 export const AdminNotificacionesView: React.FC = () => {
-  const [notifs, setNotifs]           = useState<AdminNotificacion[]>(MOCK_NOTIFICACIONES);
+  const [notifs, setNotifs]           = useState<AdminNotificacion[]>([]);
+  const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState('');
   const [filterTipo, setFilterTipo]   = useState<'TODOS' | NotifTipo>('TODOS');
   const [filterLeida, setFilterLeida] = useState<'TODOS' | 'LEIDAS' | 'NO_LEIDAS'>('TODOS');
@@ -385,6 +399,12 @@ export const AdminNotificacionesView: React.FC = () => {
   const [prefs, setPrefs]             = useState(PREFS_INICIAL);
   const [showCompose, setShowCompose] = useState(false);
   const [composeMsg, setComposeMsg]   = useState({ titulo: '', mensaje: '', tipo: 'SISTEMA' as NotifTipo });
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => { try { const data = await adminDashboardService.getResumen(); if (mounted) setNotifs(buildLiveNotifications(data)); } catch { if (mounted) toast.error('No se pudieron cargar las notificaciones'); } finally { if (mounted) setLoading(false); } };
+    void load(); const timer = window.setInterval(load, 30000); return () => { mounted = false; window.clearInterval(timer); };
+  }, []);
 
   // Estadísticas
   const stats = useMemo(() => ({
@@ -803,7 +823,9 @@ export const AdminNotificacionesView: React.FC = () => {
 
             {/* Lista */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="py-16 text-center text-sm text-slate-500">Cargando notificaciones reales...</div>
+              ) : filtered.length === 0 ? (
                 <div className="py-16 text-center">
                   <BellOff className="w-10 h-10 text-slate-300 mx-auto mb-3" />
                   <p className="text-sm font-semibold text-slate-600">Sin resultados</p>
