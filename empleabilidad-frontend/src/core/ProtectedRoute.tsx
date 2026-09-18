@@ -19,7 +19,7 @@ export const ProtectedRoute: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   return <Outlet />;
@@ -45,7 +45,7 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
   if (!user || !allowedRoles.includes(user.rol)) {
     return <Navigate to={redirectTo} replace />;
   }

@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthLayout } from './features/auth/layouts/AuthLayout';
 import { LoginView } from './features/auth/views/LoginView';
 import { RegisterView } from './features/auth/views/RegisterView';
+import { RoleSelectionView } from './features/auth/views/RoleSelectionView';
 import { ProtectedRoute, RoleProtectedRoute } from './core/ProtectedRoute';
 
 // Layouts
@@ -52,7 +53,7 @@ const Inicio = () => (
         Únete a la red de profesionales más exclusiva y conecta con las empresas que están transformando la industria en toda la región.
       </p>
       <div className="flex flex-col sm:flex-row items-center gap-4 animate-slide-up" style={{animationDelay: '200ms'}}>
-        <a href="/auth/register" className="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 text-lg flex items-center justify-center gap-2">
+        <a href="/auth" className="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 text-lg flex items-center justify-center gap-2">
           Comenzar ahora
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </a>
@@ -116,11 +117,14 @@ function App() {
 
           {/* --- RAMA LOGIN --- */}
           <Route path="/auth" element={<AuthLayout />}>
+            <Route index element={<RoleSelectionView />} />
             <Route path="login" element={<LoginView />} />
             <Route path="register" element={<RegisterView />} />
           </Route>
 
           {/* --- ADMIN (PÚBLICO POR AHORA) --- */}
+          <Route element={<ProtectedRoute />}>
+          <Route element={<RoleProtectedRoute allowedRoles={['ADMINISTRADOR']} redirectTo="/auth" />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardView />} />
@@ -140,6 +144,8 @@ function App() {
             <Route path="notificaciones" element={<AdminNotificacionesView />} />
             <Route path="reportes" element={<AdminReportesView />} />
             <Route path="configuracion" element={<AdminConfiguracionView />} />
+          </Route>
+          </Route>
           </Route>
 
           {/* --- RAMAS PROTEGIDAS --- */}

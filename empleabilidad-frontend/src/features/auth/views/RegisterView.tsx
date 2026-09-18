@@ -8,7 +8,7 @@ import { authService } from '../services/auth.service';
 import { consultasService } from '../services/consultas.service';
 import type { DniResponse, RucResponse } from '../services/consultas.service';
 import { useAuthStore } from '../store/useAuthStore';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { UserCircle, Building2, ShieldCheck, Eye, EyeOff, Search, Loader2, CheckCircle2, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -36,7 +36,17 @@ export const RegisterView: React.FC = () => {
   const location = useLocation();
   const { login } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const roleFromSelection = searchParams.get('role');
   const isApplyFlow = location.state?.from === 'apply';
+
+  React.useEffect(() => {
+    if (roleFromSelection !== 'ESTUDIANTE' && roleFromSelection !== 'EMPRESA') {
+      navigate('/auth', { replace: true });
+      return;
+    }
+    setRole(roleFromSelection);
+  }, [navigate, roleFromSelection]);
 
   // Estados de consulta y validación RENIEC / SUNAT
   const [isValidatingDni, setIsValidatingDni] = useState(false);
@@ -183,6 +193,7 @@ export const RegisterView: React.FC = () => {
         <p className="text-slate-500 text-sm mt-1">Selecciona tu perfil para comenzar</p>
       </div>
 
+      {false && (<>
       {/* Role Toggle */}
       <div className="flex p-1 bg-slate-100/80 rounded-xl relative">
         <button
@@ -209,6 +220,12 @@ export const RegisterView: React.FC = () => {
         >
           <Building2 className="w-4 h-4" /> Empresa
         </button>
+      </div>
+
+      </>)}
+      <div className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm">
+        <span className="font-semibold text-blue-800">Registrando como {role === 'EMPRESA' ? 'Empresa' : 'Profesional'}</span>
+        <a href="/auth" className="font-semibold text-blue-600 hover:underline">Cambiar</a>
       </div>
 
       {/* Forms */}

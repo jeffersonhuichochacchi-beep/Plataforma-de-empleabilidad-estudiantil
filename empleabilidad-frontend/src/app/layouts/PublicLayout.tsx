@@ -22,10 +22,10 @@ export const PublicLayout: React.FC = () => {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link to="/auth/login">
+            <Link to="/auth">
               <Button variant="ghost">Iniciar Sesión</Button>
             </Link>
-            <Link to="/auth/register">
+            <Link to="/auth">
               <Button variant="primary">Regístrate</Button>
             </Link>
           </div>

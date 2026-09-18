@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,7 +6,7 @@ import { Button } from '@/shared/components/Button';
 import { Input } from '@/shared/components/Input';
 import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store/useAuthStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Briefcase, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -20,7 +20,17 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export const LoginView: React.FC = () => {
   const { login } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedRole = searchParams.get('role');
+  const role = selectedRole === 'EMPRESA' || selectedRole === 'ADMINISTRADOR' ? selectedRole : 'ESTUDIANTE';
+  const roleLabel = role === 'EMPRESA' ? 'Empresa' : role === 'ADMINISTRADOR' ? 'Administrador' : 'Profesional';
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (!selectedRole || !['ESTUDIANTE', 'EMPRESA', 'ADMINISTRADOR'].includes(selectedRole)) {
+      navigate('/auth', { replace: true });
+    }
+  }, [navigate, selectedRole]);
 
   const {
     register,
@@ -39,10 +49,21 @@ export const LoginView: React.FC = () => {
       // Tras el login, obtenemos el perfil real
       localStorage.setItem('jwt_token', response.token);
       const user = await authService.getMe();
+      const roleMatches = role === 'ESTUDIANTE'
+        ? ['ESTUDIANTE', 'PROFESIONAL', 'CANDIDATO'].includes(user.rol)
+        : role === 'EMPRESA'
+          ? ['EMPRESA', 'RECLUTADOR'].includes(user.rol)
+          : user.rol === 'ADMINISTRADOR';
+      if (!roleMatches) {
+        localStorage.removeItem('jwt_token');
+        throw new Error(`Esta cuenta no corresponde al perfil ${roleLabel}.`);
+      }
       login(response.token, user);
       
       // Navigate based on role
-      if (user.rol === 'EMPRESA' || user.rol === 'RECLUTADOR') {
+      if (user.rol === 'ADMINISTRADOR') {
+        navigate('/admin/dashboard');
+      } else if (user.rol === 'EMPRESA' || user.rol === 'RECLUTADOR') {
         navigate('/empresa/ofertas');
       } else {
         navigate('/candidato/buscar');
@@ -60,7 +81,7 @@ export const LoginView: React.FC = () => {
           <Briefcase className="h-6 w-6 text-white" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900">Bienvenido de nuevo</h2>
-        <p className="text-slate-500 text-sm mt-1">Ingresa a tu cuenta para continuar</p>
+        <p className="text-slate-500 text-sm mt-1">Ingresa como <span className="font-semibold text-blue-600">{roleLabel}</span></p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -94,9 +115,9 @@ export const LoginView: React.FC = () => {
         </Button>
       </form>
 
-      <div className="text-center text-sm text-slate-500 pt-4 border-t border-slate-100 mt-6">
+      {role !== 'ADMINISTRADOR' && <div className="text-center text-sm text-slate-500 pt-4 border-t border-slate-100 mt-6">
         ¿No tienes cuenta? <a href="/auth/register" className="text-blue-600 hover:underline font-medium">Regístrate aquí</a>
-      </div>
+      </div>}
     </div>
   );
 };
