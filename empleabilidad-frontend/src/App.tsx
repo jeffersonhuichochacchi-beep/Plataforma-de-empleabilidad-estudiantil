@@ -62,7 +62,7 @@ const Inicio = () => (
         </a>
       </div>
       
-      {/* Admin Panel Link - Dev Only */}
+      {false && (<>
       <div className="mt-16 pt-8 border-t border-slate-200 w-full max-w-md">
         <p className="text-sm text-slate-500 mb-3">Panel de Administración</p>
         <a 
@@ -78,6 +78,7 @@ const Inicio = () => (
           Acceder al Panel Admin
         </a>
       </div>
+      </>)}
     </div>
   </div>
 );
