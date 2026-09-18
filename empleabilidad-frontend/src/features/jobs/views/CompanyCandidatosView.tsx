@@ -12,6 +12,13 @@ import type { PostulacionResponse, EstadoPostulacion, OfertaResponse, TipoEntrev
 import { Button } from '@/shared/components/Button';
 import toast from 'react-hot-toast';
 
+const toDateTimeLocal = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 16);
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const ESTADO_BADGES: Record<EstadoPostulacion, { label: string; bg: string; text: string; border: string }> = {
   ENVIADA: { label: 'Enviada', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
   RECIBIDA: { label: 'Recibida', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
@@ -769,7 +776,7 @@ export const CompanyCandidatosView: React.FC = () => {
                   const interview = candidateInterviews.find(i => !['REALIZADA', 'CANCELADA', 'NO_ASISTIO'].includes(i.estado))!;
                   setEditingInterviewId(interview.uuid);
                   setInterviewTarget(selectedPostulacion);
-                  setInterviewForm({ fechaHora: new Date(interview.fechaHora).toISOString().slice(0, 16), tipo: interview.tipo, ubicacionOEnlace: interview.enlace || interview.ubicacion || '', duracion: interview.duracion, observaciones: interview.observaciones || '' });
+                  setInterviewForm({ fechaHora: toDateTimeLocal(interview.fechaHora), tipo: interview.tipo, ubicacionOEnlace: interview.enlace || interview.ubicacion || '', duracion: interview.duracion, observaciones: interview.observaciones || '' });
                 }}
                 className="inline-flex items-center gap-1.5"
               ><CalendarPlus className="h-4 w-4" /> Reprogramar</Button>}
