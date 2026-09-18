@@ -330,15 +330,22 @@ export const AdminUsuariosView: React.FC = () => {
     const loadUsers = async () => {
       setIsLoadingUsers(true);
       try {
-        // Ambas consultas son independientes; no hagamos esperar la tabla a la
-        // consulta de roles ni dejemos una respuesta lenta bloquear la pantalla.
-        const [response, roles] = await Promise.all([
+        // La tabla y el resumen son independientes. La tabla no debe quedarse
+        // esperando a que termine la consulta secundaria de roles.
+        const [usersResult, rolesResult] = await Promise.allSettled([
           adminUsuariosService.listar({ size: 500 }),
           adminUsuariosService.resumenRoles(),
         ]);
-        if (mounted) {
-          setUsers(Array.isArray(response.content) ? response.content : []);
-          setRoleCounts(roles ?? {});
+        if (!mounted) return;
+        if (usersResult.status === 'fulfilled') {
+          setUsers(Array.isArray(usersResult.value.content) ? usersResult.value.content : []);
+        }
+        if (rolesResult.status === 'fulfilled') {
+          setRoleCounts(rolesResult.value ?? {});
+        }
+        if (usersResult.status === 'rejected') {
+          setUsers([]);
+          toast.error('No se pudo cargar la lista de usuarios');
         }
       } catch {
         if (mounted) {
@@ -676,7 +683,7 @@ export const AdminUsuariosView: React.FC = () => {
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>Empresas & Reclutadores</span>
+            <span>Empresas</span>
             <span className={`ml-1 text-xs px-2 py-0.5 rounded-full font-bold ${
               activeTab === 'EMPRESAS' ? 'bg-blue-200/60 text-blue-800' : 'bg-slate-100 text-slate-600'
             }`}>
@@ -701,7 +708,7 @@ export const AdminUsuariosView: React.FC = () => {
       {/* ── Vista Especial: Matriz de Roles y Permisos ── */}
       {activeTab === 'ROLES' ? (
         <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center mb-3">
                 <Shield className="w-5 h-5" />
@@ -722,11 +729,11 @@ export const AdminUsuariosView: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1">Publicación de empleos, gestión de postulantes y entrevistas.</p>
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-medium">Asignados:</span>
-                <span className="font-bold text-slate-800">{roleCounts.EMPRESA ?? 0} Empresas</span>
+                <span className="font-bold text-slate-800">{(roleCounts.EMPRESA ?? 0) + (roleCounts.RECLUTADOR ?? 0)} Empresas</span>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="hidden bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
                 <Award className="w-5 h-5" />
               </div>
@@ -769,7 +776,6 @@ export const AdminUsuariosView: React.FC = () => {
                     <th className="px-6 py-3.5">Módulo / Capacidad</th>
                     <th className="px-4 py-3.5 text-center">Candidato</th>
                     <th className="px-4 py-3.5 text-center">Empresa</th>
-                    <th className="px-4 py-3.5 text-center">Reclutador</th>
                     <th className="px-4 py-3.5 text-center">Administrador</th>
                   </tr>
                 </thead>
@@ -791,9 +797,6 @@ export const AdminUsuariosView: React.FC = () => {
                       </td>
                       <td className="px-4 py-3.5 text-center">
                         {row.emp ? <Check className="w-5 h-5 text-emerald-600 mx-auto" /> : <X className="w-4 h-4 text-slate-300 mx-auto" />}
-                      </td>
-                      <td className="px-4 py-3.5 text-center">
-                        {row.rec ? <Check className="w-5 h-5 text-emerald-600 mx-auto" /> : <X className="w-4 h-4 text-slate-300 mx-auto" />}
                       </td>
                       <td className="px-4 py-3.5 text-center">
                         {row.adm ? <Check className="w-5 h-5 text-emerald-600 mx-auto" /> : <X className="w-4 h-4 text-slate-300 mx-auto" />}

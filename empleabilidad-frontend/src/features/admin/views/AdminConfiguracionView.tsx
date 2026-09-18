@@ -28,7 +28,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { api, usuariosPublicApi } from '@/core/api';
+import { api } from '@/core/api';
 
 // ─── Pestañas ──────────────────────────────────────────────────────────────────
 type TabType = 'general' | 'seguridad' | 'empleabilidad' | 'ia' | 'notificaciones' | 'sistema';
@@ -128,7 +128,8 @@ export const AdminConfiguracionView: React.FC = () => {
     let mounted = true;
     const load = async () => {
       try {
-        const { data } = await usuariosPublicApi.get<Record<string, unknown>>('/admin/configuracion');
+        // Es un endpoint administrativo: debe enviar el JWT del administrador.
+        const { data } = await api.get<Record<string, unknown>>('/admin/configuracion');
         if (!mounted) return;
         if (data.general) setGeneralConfig(current => ({ ...current, ...(data.general as Partial<typeof generalConfig>) }));
         if (data.seguridad) setSeguridadConfig(current => ({ ...current, ...(data.seguridad as Partial<typeof seguridadConfig>) }));

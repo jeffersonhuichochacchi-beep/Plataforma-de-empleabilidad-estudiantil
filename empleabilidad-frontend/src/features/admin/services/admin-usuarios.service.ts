@@ -21,20 +21,28 @@ interface UsuarioApiResponse {
   verificada?: boolean;
 }
 
-const toStatus = (value: string, bloqueado: boolean): UserStatus => {
+const toStatus = (value: string | undefined, bloqueado: boolean | undefined): UserStatus => {
   if (bloqueado || value === 'BLOQUEADA') return 'BLOQUEADA';
   if (value === 'PENDIENTE_VERIFICACION') return 'PENDIENTE';
   if (value === 'ACTIVA') return 'ACTIVA';
   return 'INACTIVA';
 };
 
-const toUser = (user: UsuarioApiResponse): AdminUserItem => ({
-  ...user,
-  estadoCuenta: toStatus(user.estadoCuenta, user.bloqueado),
-  nombreCompleto: user.nombreCompleto || user.email,
-  fechaRegistro: user.fechaRegistro || new Date(0).toISOString(),
-  ultimoAcceso: user.ultimoAcceso || 'Nunca',
-});
+const toUser = (user: UsuarioApiResponse): AdminUserItem => {
+  const email = String(user.email ?? '');
+  const nombreCompleto = String(user.nombreCompleto || email || 'Usuario');
+  const roles: UserRole[] = ['ESTUDIANTE', 'PROFESIONAL', 'EMPRESA', 'RECLUTADOR', 'ADMINISTRADOR'];
+  const rol = roles.includes(user.rol) ? user.rol : 'ESTUDIANTE';
+  return {
+    ...user,
+    email,
+    rol,
+    estadoCuenta: toStatus(user.estadoCuenta, user.bloqueado),
+    nombreCompleto,
+    fechaRegistro: user.fechaRegistro || new Date(0).toISOString(),
+    ultimoAcceso: user.ultimoAcceso || 'Nunca',
+  };
+};
 
 export const adminUsuariosService = {
   resumenRoles: async () => {
@@ -50,7 +58,7 @@ export const adminUsuariosService = {
     // Spring devuelve Page, pero aceptamos también un arreglo para evitar que
     // una variación del gateway provoque un crash al ejecutar .map.
     const content = Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : [];
-    return { ...(Array.isArray(data) ? {} : data), content: content.map(toUser) };
+    return { ...(Array.isArray(data) ? {} : data), content: content.filter(Boolean).map(toUser) };
   },
   cambiarBloqueo: async (id: string, bloqueado: boolean) => api.patch(`/admin/usuarios/${id}/bloqueo`, { bloqueado }),
   verificarEmpresa: async (id: string) => api.patch(`/admin/usuarios/${id}/verificar`),
