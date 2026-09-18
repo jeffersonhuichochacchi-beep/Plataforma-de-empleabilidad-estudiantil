@@ -514,7 +514,7 @@ export const AdminPostulacionesView: React.FC = () => {
     rechazados:       postulaciones.filter(p => p.estado === 'RECHAZADO').length,
     preseleccionados: postulaciones.filter(p => p.estado === 'PRESELECCIONADO').length,
     ofertasEnviadas:  postulaciones.filter(p => p.estado === 'OFERTA_ENVIADA').length,
-    avgMatch:         Math.round(postulaciones.reduce((acc, p) => acc + p.matchScore, 0) / postulaciones.length),
+    avgMatch:         postulaciones.length ? Math.round(postulaciones.reduce((acc, p) => acc + p.matchScore, 0) / postulaciones.length) : 0,
   }), [postulaciones]);
 
   // Filtrado
@@ -553,8 +553,21 @@ export const AdminPostulacionesView: React.FC = () => {
 
   useEffect(() => {
     let mounted = true;
-    const load = async () => { setLoading(true); try { const response = await adminPostulacionesService.listar(); if (mounted) setPostulaciones(response.content); } catch { if (mounted) toast.error('No se pudieron cargar las postulaciones'); } finally { if (mounted) setLoading(false); } };
-    void load(); return () => { mounted = false; };
+    const load = async (showSpinner = true) => {
+      if (showSpinner) setLoading(true);
+      try {
+        const response = await adminPostulacionesService.listar();
+        if (mounted) setPostulaciones(response.content);
+      } catch {
+        if (mounted && showSpinner) toast.error('No se pudieron cargar las postulaciones');
+      } finally {
+        if (mounted && showSpinner) setLoading(false);
+      }
+    };
+    void load();
+    // Actualiza la bandeja sin recargar la página cuando llega una postulación nueva.
+    const interval = window.setInterval(() => void load(false), 15000);
+    return () => { mounted = false; window.clearInterval(interval); };
   }, []);
 
   const handleUpdateEstado = async (id: string, estado: EstadoPostulacion) => {

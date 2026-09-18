@@ -46,8 +46,11 @@ export const adminUsuariosService = {
     return toUser(data);
   },
   listar: async (params: { page?: number; size?: number; q?: string; rol?: UserRole; estado?: string } = {}) => {
-    const { data } = await api.get<PageResponse<UsuarioApiResponse>>('/admin/usuarios', { params });
-    return { ...data, content: data.content.map(toUser) };
+    const { data } = await api.get<PageResponse<UsuarioApiResponse> | UsuarioApiResponse[]>('/admin/usuarios', { params });
+    // Spring devuelve Page, pero aceptamos también un arreglo para evitar que
+    // una variación del gateway provoque un crash al ejecutar .map.
+    const content = Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : [];
+    return { ...(Array.isArray(data) ? {} : data), content: content.map(toUser) };
   },
   cambiarBloqueo: async (id: string, bloqueado: boolean) => api.patch(`/admin/usuarios/${id}/bloqueo`, { bloqueado }),
   verificarEmpresa: async (id: string) => api.patch(`/admin/usuarios/${id}/verificar`),

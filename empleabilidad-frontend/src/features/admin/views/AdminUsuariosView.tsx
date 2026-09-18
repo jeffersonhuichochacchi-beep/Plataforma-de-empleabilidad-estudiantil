@@ -59,7 +59,9 @@ export interface AdminUserItem {
 }
 
 // ─── Datos Mock Enriquecidos ──────────────────────────────────────────────────
-const INITIAL_USERS: AdminUserItem[] = [
+// Datos históricos conservados para referencia; la vista usa exclusivamente
+// la respuesta del backend y no los muestra como datos reales.
+export const INITIAL_USERS: AdminUserItem[] = [
   {
     id: 'u-1',
     uuid: '65b09f07-9686-485f-be3e-07ae112d07ed',
@@ -200,7 +202,9 @@ export const AdminUsuariosView: React.FC = () => {
   const navigate = useNavigate();
 
   // Estados principales
-  const [users, setUsers] = useState<AdminUserItem[]>(INITIAL_USERS);
+  // No mostrar datos de demostración mientras llega la respuesta real. Antes la
+  // vista iniciaba con 9 mocks y luego los reemplazaba por los usuarios reales.
+  const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [roleCounts, setRoleCounts] = useState<Record<string, number>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -326,12 +330,22 @@ export const AdminUsuariosView: React.FC = () => {
     const loadUsers = async () => {
       setIsLoadingUsers(true);
       try {
-        const response = await adminUsuariosService.listar({ size: 500 });
-        if (mounted) setUsers(response.content);
-        const roles = await adminUsuariosService.resumenRoles();
-        if (mounted) setRoleCounts(roles);
+        // Ambas consultas son independientes; no hagamos esperar la tabla a la
+        // consulta de roles ni dejemos una respuesta lenta bloquear la pantalla.
+        const [response, roles] = await Promise.all([
+          adminUsuariosService.listar({ size: 500 }),
+          adminUsuariosService.resumenRoles(),
+        ]);
+        if (mounted) {
+          setUsers(Array.isArray(response.content) ? response.content : []);
+          setRoleCounts(roles ?? {});
+        }
       } catch {
-        if (mounted) toast.error('No se pudo cargar la lista de usuarios');
+        if (mounted) {
+          setUsers([]);
+          setRoleCounts({});
+          toast.error('No se pudo cargar la lista de usuarios');
+        }
       } finally {
         if (mounted) setIsLoadingUsers(false);
       }
