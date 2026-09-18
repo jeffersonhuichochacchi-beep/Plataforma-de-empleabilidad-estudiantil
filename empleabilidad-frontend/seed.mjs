@@ -2,7 +2,7 @@ import axios from 'axios';
 import jwt from 'jsonwebtoken';
 
 const apiUsuarios = axios.create({ baseURL: 'http://localhost:8081/api' });
-const apiOfertas = axios.create({ baseURL: 'http://localhost:8082/api' });
+const apiOfertas = axios.create({ baseURL: 'http://localhost:8081/api' });
 
 const seedData = async () => {
   try {

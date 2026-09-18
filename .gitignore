@@ -12,6 +12,7 @@ pnpm-debug.log*
 
 # Java / Maven
 target/
+.m2-local/
 *.class
 .mvn/wrapper/maven-wrapper.jar
 

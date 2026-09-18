@@ -6,6 +6,7 @@ import {
   MessageSquare, AlertCircle, ArrowUpRight, Download, X, Trash2, CalendarPlus
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { api } from '@/core/api';
 import { jobService } from '../services/job.service';
 import type { PostulacionResponse, EstadoPostulacion, OfertaResponse, TipoEntrevista, EntrevistaResponse } from '../types/job.types';
 import { Button } from '@/shared/components/Button';
@@ -68,6 +69,8 @@ export const CompanyCandidatosView: React.FC = () => {
   } | null>(null);
   const [comentarioCambio, setComentarioCambio] = useState('');
   const [viewingCvPostulacion, setViewingCvPostulacion] = useState<PostulacionResponse | null>(null);
+  const [cvViewerUrl, setCvViewerUrl] = useState<string | null>(null);
+  const [isLoadingCv, setIsLoadingCv] = useState(false);
   const [interviewTarget, setInterviewTarget] = useState<PostulacionResponse | null>(null);
   const [interviewForm, setInterviewForm] = useState({ fechaHora: '', tipo: 'VIRTUAL' as TipoEntrevista, ubicacionOEnlace: '', duracion: 30, observaciones: '' });
   const [isScheduling, setIsScheduling] = useState(false);
@@ -77,6 +80,31 @@ export const CompanyCandidatosView: React.FC = () => {
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<PostulacionResponse | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+
+    if (viewingCvPostulacion?.uuid) {
+      setIsLoadingCv(true);
+      setCvViewerUrl(null);
+      void api.get(`/postulaciones/${viewingCvPostulacion.uuid}/cv`, { responseType: 'blob' })
+        .then(response => {
+          objectUrl = URL.createObjectURL(response.data as Blob);
+          setCvViewerUrl(objectUrl);
+        })
+        .catch(() => {
+          toast.error('No se pudo cargar el CV del candidato.');
+        })
+        .finally(() => setIsLoadingCv(false));
+    } else {
+      setCvViewerUrl(null);
+      setIsLoadingCv(false);
+    }
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [viewingCvPostulacion?.uuid]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -525,7 +553,7 @@ export const CompanyCandidatosView: React.FC = () => {
                               <Eye className="h-3 w-3 opacity-70" />
                             </button>
                             <a
-                              href={`http://localhost:8083/api/postulaciones/${postulacion.uuid}/cv`}
+                              href={`http://localhost:8081/api/postulaciones/${postulacion.uuid}/cv`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
@@ -696,7 +724,7 @@ export const CompanyCandidatosView: React.FC = () => {
                         Vista Previa
                       </button>
                       <a
-                        href={`http://localhost:8083/api/postulaciones/${selectedPostulacion.uuid}/cv`}
+                        href={`http://localhost:8081/api/postulaciones/${selectedPostulacion.uuid}/cv`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
@@ -875,18 +903,18 @@ export const CompanyCandidatosView: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <a
-                  href={`http://localhost:8083/api/postulaciones/${viewingCvPostulacion.uuid}/cv`}
+                  href={cvViewerUrl || undefined}
                   download={`CV_${(viewingCvPostulacion.candidatoNombre || 'Candidato').replace(/\s+/g, '_')}.pdf`}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                  className={`px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm ${!cvViewerUrl ? 'pointer-events-none opacity-50' : ''}`}
                 >
                   <Download className="h-3.5 w-3.5" />
                   Descargar PDF
                 </a>
                 <a
-                  href={`http://localhost:8083/api/postulaciones/${viewingCvPostulacion.uuid}/cv`}
+                  href={cvViewerUrl || undefined}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                  className={`px-3.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm ${!cvViewerUrl ? 'pointer-events-none opacity-50' : ''}`}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   Pestaña Nueva
@@ -904,11 +932,17 @@ export const CompanyCandidatosView: React.FC = () => {
 
             {/* Modal Body - PDF Iframe Viewer */}
             <div className="flex-1 bg-slate-100 p-2 overflow-hidden">
-              <iframe
-                src={`http://localhost:8083/api/postulaciones/${viewingCvPostulacion.uuid}/cv`}
-                className="w-full h-full rounded-xl border border-slate-200/80 bg-white shadow-inner"
-                title={`CV de ${viewingCvPostulacion.candidatoNombre}`}
-              />
+              {cvViewerUrl ? (
+                <iframe
+                  src={cvViewerUrl}
+                  className="w-full h-full rounded-xl border border-slate-200/80 bg-white shadow-inner"
+                  title={`CV de ${viewingCvPostulacion.candidatoNombre}`}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-slate-500">
+                  {isLoadingCv ? 'Cargando CV...' : 'No se pudo cargar el CV.'}
+                </div>
+              )}
             </div>
           </div>
         </div>

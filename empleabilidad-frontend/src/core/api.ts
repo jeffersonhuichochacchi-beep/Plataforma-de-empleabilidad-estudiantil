@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // By default we point to the API gateway or users service for auth
 export const api = axios.create({
-  baseURL: 'http://localhost:8081/api', // usuarios-service as default for Auth
+  baseURL: 'http://localhost:8081/api', // backend consolidado
   headers: {
     'Content-Type': 'application/json',
   },
@@ -10,13 +10,13 @@ export const api = axios.create({
 
 // For multiple services, we might define specific instances or use paths
 export const ofertasApi = axios.create({
-  baseURL: 'http://localhost:8082/api',
+  baseURL: 'http://localhost:8081/api',
   headers: { 'Content-Type': 'application/json' },
 });
 
 // Consultas públicas: no envían un JWT posiblemente vencido.
 export const ofertasPublicApi = axios.create({
-  baseURL: 'http://localhost:8082/api',
+  baseURL: 'http://localhost:8081/api',
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -26,7 +26,7 @@ export const usuariosPublicApi = axios.create({
 });
 
 export const postulacionesApi = axios.create({
-  baseURL: 'http://localhost:8083/api',
+  baseURL: 'http://localhost:8081/api',
   headers: { 'Content-Type': 'application/json' },
 });
 
