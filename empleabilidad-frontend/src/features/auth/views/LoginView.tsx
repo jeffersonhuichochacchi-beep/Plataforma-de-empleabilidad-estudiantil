@@ -115,7 +115,13 @@ export const LoginView: React.FC = () => {
         </Button>
       </form>
 
-      {role !== 'ADMINISTRADOR' && <div className="text-center text-sm text-slate-500 pt-4 border-t border-slate-100 mt-6">
+      {role !== 'ADMINISTRADOR' && <div onClick={(event) => {
+        const link = (event.target as HTMLElement).closest('a');
+        if (link) {
+          event.preventDefault();
+          navigate(`/auth/register?role=${role}`);
+        }
+      }} className="text-center text-sm text-slate-500 pt-4 border-t border-slate-100 mt-6">
         ¿No tienes cuenta? <a href="/auth/register" className="text-blue-600 hover:underline font-medium">Regístrate aquí</a>
       </div>}
     </div>

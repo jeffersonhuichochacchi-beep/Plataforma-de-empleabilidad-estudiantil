@@ -10,7 +10,6 @@ const roles: Array<{
   description: string;
   icon: React.ElementType;
   tone: string;
-  register?: boolean;
 }> = [
   {
     role: 'ESTUDIANTE',
@@ -18,7 +17,6 @@ const roles: Array<{
     description: 'Postula a empleos, gestiona tu CV y sigue tus procesos.',
     icon: UserCircle,
     tone: 'bg-blue-50 text-blue-600',
-    register: true,
   },
   {
     role: 'EMPRESA',
@@ -26,7 +24,6 @@ const roles: Array<{
     description: 'Publica ofertas, evalúa candidatos y encuentra talento.',
     icon: Building2,
     tone: 'bg-emerald-50 text-emerald-600',
-    register: true,
   },
   {
     role: 'ADMINISTRADOR',
@@ -55,7 +52,7 @@ export const RoleSelectionView: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        {roles.map(({ role, title, description, icon: Icon, tone, register }) => (
+        {roles.map(({ role, title, description, icon: Icon, tone }) => (
           <div key={role} className="group rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:border-blue-200 hover:shadow-md">
             <button type="button" onClick={() => goToLogin(role)} className="flex w-full items-center gap-3 text-left">
               <span className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${tone}`}>
@@ -67,11 +64,6 @@ export const RoleSelectionView: React.FC = () => {
               </span>
               <ArrowRight className="h-5 w-5 flex-shrink-0 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-blue-600" />
             </button>
-            {register && (
-              <button type="button" onClick={() => navigate(`/auth/register?role=${role}`)} className="ml-14 mt-1 text-xs font-semibold text-blue-600 hover:underline">
-                Crear cuenta nueva
-              </button>
-            )}
           </div>
         ))}
       </div>
