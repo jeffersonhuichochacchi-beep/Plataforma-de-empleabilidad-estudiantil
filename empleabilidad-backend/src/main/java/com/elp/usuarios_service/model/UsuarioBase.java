@@ -15,7 +15,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "usuarios", schema = "schema_usuarios")
+@Table(name = "usuarios", schema = "public")
 @Inheritance(strategy = InheritanceType.JOINED)
 @Data
 @NoArgsConstructor
@@ -27,16 +27,21 @@ public abstract class UsuarioBase {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /** UUID de auth.users.id. La autenticación y sus credenciales viven en Supabase. */
+    @Column(name = "auth_user_id", unique = true, nullable = false, updatable = false)
+    private UUID authUserId;
+
     @Column(unique = true, nullable = false, updatable = false)
     @Builder.Default
     private UUID uuid = UUID.randomUUID();
 
-    @Column(unique = true, nullable = false)
+    @Transient
     private String email;
 
-    @Column(nullable = false)
+    @Transient
     private String password;
 
+    @Transient
     private String telefono;
 
     @Column(name = "foto_perfil")
@@ -51,11 +56,11 @@ public abstract class UsuarioBase {
     @Builder.Default
     private EstadoCuenta estadoCuenta = EstadoCuenta.PENDIENTE_VERIFICACION;
 
-    @Column(name = "email_verificado")
+    @Transient
     @Builder.Default
     private Boolean emailVerificado = false;
 
-    @Column(name = "telefono_verificado")
+    @Transient
     @Builder.Default
     private Boolean telefonoVerificado = false;
 
@@ -104,3 +109,4 @@ public abstract class UsuarioBase {
         if (estadoPerfil == null) estadoPerfil = com.elp.usuarios_service.model.enums.EstadoPerfil.INCOMPLETO;
     }
 }
+

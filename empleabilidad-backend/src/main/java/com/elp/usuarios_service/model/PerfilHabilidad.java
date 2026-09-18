@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Entity
-@Table(name = "perfil_habilidades", schema = "schema_usuarios")
+@Table(name = "perfil_habilidades", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,3 +33,4 @@ public class PerfilHabilidad {
     @Column(name = "anos_experiencia")
     private Integer anosExperiencia;
 }
+

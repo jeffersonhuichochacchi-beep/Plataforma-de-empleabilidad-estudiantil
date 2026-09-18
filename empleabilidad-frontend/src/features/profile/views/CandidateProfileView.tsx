@@ -33,7 +33,7 @@ export const CandidateProfileView = () => {
       const parts = (result.nombreParaMostrar && result.nombreParaMostrar !== result.email) ? result.nombreParaMostrar.trim().split(/\s+/) : [];
       const nombres = result.nombres?.trim() || parts.shift() || user?.nombres || '';
       const apellidos = result.apellidos?.trim() || parts.join(' ') || user?.apellidos || '';
-      const normalized = { ...result, nombres, apellidos };
+      const normalized = { ...result, email: result.email || user?.email || '', nombres, apellidos };
       setProfile(normalized);
       setPersonal({ nombres, apellidos, telefono: result.telefono || user?.telefono || '', tituloProfesional: result.tituloProfesional || '', ubicacion: result.ubicacion || '', biografia: result.biografia || '', enlacePortafolio: result.enlacePortafolio || '' });
     } catch { toast.error('No se pudo cargar tu perfil.'); }
@@ -91,5 +91,4 @@ export const CandidateProfileView = () => {
 };
 
 const ListExperience = ({ items, onRemove }: { items: ExperienciaPerfil[]; onRemove?: (id: string) => void }) => <section><h2 className="mb-3 text-lg font-bold">Experiencia reciente</h2>{items.length === 0 ? <p className="text-sm text-slate-500">Aún no has agregado experiencia.</p> : <div className="space-y-4">{items.map(e => <article key={e.id} className="border-l-2 border-blue-500 pl-4"><div className="flex justify-between"><div><b>{e.cargo}</b><p className="text-sm text-blue-600">{e.empresa}</p></div>{onRemove && <button onClick={() => onRemove(e.id)} className="text-rose-500"><Trash2 className="h-4 w-4" /></button>}</div><p className="mt-1 text-sm text-slate-600">{e.descripcion}</p></article>)}</div>}</section>;
-
 

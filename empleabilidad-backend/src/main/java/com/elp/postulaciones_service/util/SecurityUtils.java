@@ -11,22 +11,13 @@ public class SecurityUtils {
 
     public static UUID getUsuarioLogueadoId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt) {
-            Jwt jwt = (Jwt) authentication.getPrincipal();
-            String sub = jwt.getSubject();
-            if (sub != null) {
-                return UUID.fromString(sub);
-            }
-        }
+        if (authentication != null && authentication.isAuthenticated()) return UUID.fromString(authentication.getName());
         throw new UnauthorizedException("No se encontro un usuario autenticado");
     }
 
     public static String getRolUsuarioLogueado() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt) {
-            Jwt jwt = (Jwt) authentication.getPrincipal();
-            return jwt.getClaimAsString("rol");
-        }
+        if (authentication != null && !authentication.getAuthorities().isEmpty()) return authentication.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
         return null;
     }
 

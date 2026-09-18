@@ -12,7 +12,7 @@ import lombok.experimental.SuperBuilder;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "empresas", schema = "schema_usuarios")
+@Table(name = "empresas", schema = "public")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
@@ -50,3 +50,4 @@ public class Empresa extends UsuarioBase {
     @Column(name = "fecha_verificacion")
     private Timestamp fechaVerificacion;
 }
+

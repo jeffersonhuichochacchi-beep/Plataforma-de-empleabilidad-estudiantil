@@ -10,7 +10,7 @@ import java.sql.Date;
 import java.util.UUID;
 
 @Entity
-@Table(name = "experiencias_laborales", schema = "schema_usuarios")
+@Table(name = "experiencias_laborales", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -45,3 +45,4 @@ public class ExperienciaLaboral {
     private String ubicacion;
     private String modalidad;
 }
+

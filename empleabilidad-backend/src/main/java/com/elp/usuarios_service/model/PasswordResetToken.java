@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "password_reset_tokens", schema = "schema_usuarios")
+@Table(name = "password_reset_tokens", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -42,3 +42,4 @@ public class PasswordResetToken {
     @Column(name = "fecha_uso")
     private Timestamp fechaUso;
 }
+

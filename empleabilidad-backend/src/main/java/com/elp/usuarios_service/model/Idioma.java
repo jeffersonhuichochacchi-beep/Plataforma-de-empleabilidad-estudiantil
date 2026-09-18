@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Entity
-@Table(name = "idiomas", schema = "schema_usuarios")
+@Table(name = "idiomas", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,3 +29,4 @@ public class Idioma {
     @Column(nullable = false)
     private String nivel; // A1, A2, B1, B2, C1, C2, NATIVO
 }
+

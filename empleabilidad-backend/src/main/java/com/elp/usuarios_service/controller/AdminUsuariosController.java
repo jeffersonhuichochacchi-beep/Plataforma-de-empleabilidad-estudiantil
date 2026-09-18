@@ -9,7 +9,7 @@ import com.elp.usuarios_service.model.enums.EstadoCuenta;
 import com.elp.usuarios_service.model.enums.Rol;
 import com.elp.usuarios_service.repository.EmpresaRepository;
 import com.elp.usuarios_service.repository.UsuarioBaseRepository;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.elp.usuarios_service.service.SupabaseAuthClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,29 +30,25 @@ import java.util.Map;
 public class AdminUsuariosController {
     private final UsuarioBaseRepository usuarioRepository;
     private final EmpresaRepository empresaRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final SupabaseAuthClient supabaseAuthClient;
 
     @PostMapping
     public AdminUsuarioResponse crear(@RequestBody AdminCrearUsuarioRequest request) {
         if (request.email() == null || request.email().isBlank() || request.nombreCompleto() == null || request.nombreCompleto().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nombre y correo son obligatorios");
-        if (usuarioRepository.findByEmail(request.email()).isPresent())
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado");
         Rol rol = request.rol() == null ? Rol.ESTUDIANTE : request.rol();
         UsuarioBase user;
         if (rol == Rol.EMPRESA || rol == Rol.RECLUTADOR) {
-            Empresa empresa = Empresa.builder().email(request.email()).password(passwordEncoder.encode("Temporal123!"))
-                .telefono(request.telefono()).rol(rol).estadoCuenta(EstadoCuenta.ACTIVA)
+            Empresa empresa = Empresa.builder().authUserId(supabaseAuthClient.createUser(request.email(), UUID.randomUUID().toString(), request.telefono())).rol(rol).estadoCuenta(EstadoCuenta.ACTIVA)
                 .ruc(request.ruc() == null || request.ruc().isBlank() ? String.valueOf(System.currentTimeMillis()).substring(0, 11) : request.ruc())
                 .razonSocial(request.nombreCompleto()).industria(request.sector()).estadoVerificacion("VERIFICADA").build();
             user = empresa;
         } else if (rol == Rol.ESTUDIANTE || rol == Rol.PROFESIONAL) {
             String[] parts = request.nombreCompleto().trim().split("\\s+", 2);
-            Estudiante estudiante = Estudiante.builder().email(request.email()).password(passwordEncoder.encode("Temporal123!"))
-                .telefono(request.telefono()).rol(rol).estadoCuenta(EstadoCuenta.ACTIVA).dni(String.valueOf(System.currentTimeMillis()).substring(0, 8))
+            Estudiante estudiante = Estudiante.builder().authUserId(supabaseAuthClient.createUser(request.email(), UUID.randomUUID().toString(), request.telefono())).rol(rol).estadoCuenta(EstadoCuenta.ACTIVA).dni(String.valueOf(System.currentTimeMillis()).substring(0, 8))
                 .nombres(parts[0]).apellidos(parts.length > 1 ? parts[1] : "Sin apellido").build();
             user = estudiante;
-        } else throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rol no habilitado para creación administrativa");
+        } else throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rol no habilitado para creaciÃ³n administrativa");
         return AdminUsuarioResponse.from(usuarioRepository.save(user));
     }
 
@@ -66,7 +62,7 @@ public class AdminUsuariosController {
     ) {
         int safeSize = Math.min(Math.max(size, 1), 500);
         Pageable pageable = PageRequest.of(Math.max(page, 0), safeSize, Sort.by(Sort.Direction.DESC, "fechaRegistro"));
-        return usuarioRepository.buscarAdministrativos(q == null ? "" : q.trim().toLowerCase(), rol, estado, pageable)
+        return usuarioRepository.buscarAdministrativos(rol, estado, pageable)
             .map(AdminUsuarioResponse::from);
     }
 
@@ -111,3 +107,5 @@ public class AdminUsuariosController {
     private UsuarioBase find(UUID id) { return usuarioRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado")); }
     public record BloqueoRequest(boolean bloqueado) {}
 }
+
+

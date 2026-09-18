@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -37,7 +38,9 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UsuarioResponseDTO> obtenerUsuarioActual(Authentication authentication) {
-        return ResponseEntity.ok(authService.obtenerUsuarioActual(authentication.getName()));
+    public ResponseEntity<UsuarioResponseDTO> obtenerUsuarioActual(Authentication authentication, @AuthenticationPrincipal Jwt jwt) {
+        // Authentication#getName() es el id interno asignado por el converter;
+        // el perfil se relaciona con auth.users mediante el subject del JWT.
+        return ResponseEntity.ok(authService.obtenerUsuarioActual(jwt.getSubject(), jwt.getClaimAsString("email")));
     }
 }

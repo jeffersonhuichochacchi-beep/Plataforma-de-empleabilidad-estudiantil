@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "email_verification_tokens", schema = "schema_usuarios")
+@Table(name = "email_verification_tokens", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -42,3 +42,4 @@ public class EmailVerificationToken {
     @Column(name = "fecha_uso")
     private Timestamp fechaUso;
 }
+

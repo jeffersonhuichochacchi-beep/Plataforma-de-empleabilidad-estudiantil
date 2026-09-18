@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "postulaciones", schema = "schema_postulaciones", uniqueConstraints = {
+@Table(name = "postulaciones", schema = "public", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"candidato_id", "oferta_id"})
 }, indexes = {
     @Index(name = "idx_candidato", columnList = "candidato_id"),
@@ -62,7 +62,7 @@ public class Postulacion {
     @Column(columnDefinition = "TEXT")
     private String observaciones;
 
-    // Campos de evaluación con IA
+    // Campos de evaluaciÃ³n con IA
     @Column(name = "cumple_requerimientos")
     private Boolean cumpleRequerimientos;
 
@@ -92,3 +92,4 @@ public class Postulacion {
         }
     }
 }
+

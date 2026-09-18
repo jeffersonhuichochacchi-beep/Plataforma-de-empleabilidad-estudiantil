@@ -10,5 +10,4 @@ import java.util.UUID;
 @Repository
 public interface EmpresaRepository extends JpaRepository<Empresa, UUID> {
     Optional<Empresa> findByRuc(String ruc);
-    Optional<Empresa> findByEmail(String email);
 }

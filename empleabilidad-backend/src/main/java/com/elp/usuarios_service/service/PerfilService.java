@@ -34,6 +34,7 @@ public class PerfilService {
     private final StorageService storageService;
     private final ProfileCompletionService profileCompletionService;
     private final CloudinaryProfileService cloudinaryProfileService;
+    private final SupabaseAuthClient supabaseAuthClient;
 
     /**
      * Resuelve el usuario autenticado tanto cuando Spring Security entrega el
@@ -44,11 +45,16 @@ public class PerfilService {
             throw new IllegalArgumentException("Usuario autenticado no identificado");
         }
         try {
-            return UUID.fromString(identificador);
-        } catch (IllegalArgumentException ignored) {
-            return usuarioRepository.findByEmail(identificador)
+            UUID candidato = UUID.fromString(identificador);
+            // El JWT puede contener el ID interno o el auth_user_id de Supabase.
+            if (usuarioRepository.existsById(candidato)) {
+                return candidato;
+            }
+            return usuarioRepository.findByAuthUserId(candidato)
                     .map(UsuarioBase::getId)
                     .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        } catch (IllegalArgumentException ignored) {
+            throw new IllegalArgumentException("Usuario no encontrado");
         }
     }
 
@@ -129,7 +135,12 @@ public class PerfilService {
                 .orElseThrow(() -> new IllegalArgumentException("Solo los candidatos pueden actualizar este perfil"));
         if (request.getNombres() != null) estudiante.setNombres(request.getNombres().trim());
         if (request.getApellidos() != null) estudiante.setApellidos(request.getApellidos().trim());
-        if (request.getTelefono() != null) estudiante.setTelefono(request.getTelefono().trim());
+        if (request.getTelefono() != null) {
+            String phone = request.getTelefono().trim();
+            UsuarioBase usuario = usuarioRepository.findById(usuarioId)
+                    .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+            supabaseAuthClient.updatePhone(usuario.getAuthUserId(), phone);
+        }
         estudiante.setBiografia(request.getBiografia());
         estudiante.setTituloProfesional(request.getTituloProfesional());
         estudiante.setUbicacion(request.getUbicacion());
@@ -173,7 +184,7 @@ public class PerfilService {
 
     @Transactional
     public PerfilResponseDTO.HabilidadDTO agregarHabilidad(UUID usuarioId, HabilidadRequest request) {
-        Habilidad habilidad = habilidadRepository.findByNombreIgnoreCase(request.getNombre()).orElseGet(() -> habilidadRepository.save(Habilidad.builder().nombre(request.getNombre().trim()).build()));
+        Habilidad habilidad = habilidadRepository.findByNombreIgnoreCase(request.getNombre()).orElseGet(() -> habilidadRepository.save(Habilidad.builder().nombre(request.getNombre().trim()).activo(true).build()));
         PerfilHabilidad ph = perfilHabilidadRepository.findByUsuarioIdAndHabilidadId(usuarioId, habilidad.getId()).orElseGet(() -> PerfilHabilidad.builder().usuarioId(usuarioId).habilidad(habilidad).build());
         ph.setNivel(request.getNivel() == null ? "INTERMEDIO" : request.getNivel());
         ph.setAnosExperiencia(request.getAnosExperiencia());

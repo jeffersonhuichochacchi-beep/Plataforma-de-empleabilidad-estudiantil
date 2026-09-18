@@ -15,6 +15,7 @@ public interface OfertaRepository extends JpaRepository<Oferta, UUID>, JpaSpecif
     boolean existsByCategoriaId(UUID categoriaId);
     long countByEstado(EstadoOferta estado);
 
-    @Query(value = "select count(*) from schema_postulaciones.postulaciones where oferta_id = :ofertaId and estado not in ('RETIRADA', 'CANCELADA')", nativeQuery = true)
+    @Query(value = "select count(*) from public.postulaciones where oferta_id = :ofertaId and estado not in ('RETIRADA', 'CANCELADA')", nativeQuery = true)
     long countPostulaciones(@Param("ofertaId") UUID ofertaId);
 }
+

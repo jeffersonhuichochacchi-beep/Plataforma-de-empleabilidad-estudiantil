@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Entity
-@Table(name = "preferencias_laborales", schema = "schema_usuarios")
+@Table(name = "preferencias_laborales", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,3 +37,4 @@ public class PreferenciaLaboral {
     private String ubicaciones;
     private String disponibilidad;
 }
+

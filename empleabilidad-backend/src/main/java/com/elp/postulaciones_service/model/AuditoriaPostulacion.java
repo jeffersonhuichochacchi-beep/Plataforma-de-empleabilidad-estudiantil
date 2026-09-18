@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "auditoria_postulaciones", schema = "schema_postulaciones")
+@Table(name = "auditoria_postulaciones", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -40,3 +40,4 @@ public class AuditoriaPostulacion {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 }
+

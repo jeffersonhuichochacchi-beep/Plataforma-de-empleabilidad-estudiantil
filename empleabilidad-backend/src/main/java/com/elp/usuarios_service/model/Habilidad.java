@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Entity(name = "UsuarioHabilidad")
-@Table(name = "habilidades", schema = "schema_usuarios")
+@Table(name = "habilidades", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,4 +21,12 @@ public class Habilidad {
 
     @Column(unique = true, nullable = false)
     private String nombre;
+
+    @Column(columnDefinition = "TEXT")
+    private String descripcion;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
 }
+

@@ -10,7 +10,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "sesiones_usuario", schema = "schema_usuarios")
+@Table(name = "sesiones_usuario", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -44,3 +44,4 @@ public class SesionUsuario {
     @Builder.Default
     private Boolean activa = true;
 }
+

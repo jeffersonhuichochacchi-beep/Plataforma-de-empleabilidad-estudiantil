@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "refresh_tokens", schema = "schema_usuarios")
+@Table(name = "refresh_tokens", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -47,3 +47,4 @@ public class RefreshToken {
     @Column(name = "user_agent")
     private String userAgent;
 }
+

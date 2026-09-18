@@ -33,7 +33,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "ofertas", schema = "schema_ofertas", indexes = {
+@Table(name = "ofertas", schema = "public", indexes = {
         @Index(name = "idx_oferta_empresa", columnList = "empresa_id"),
         @Index(name = "idx_oferta_estado", columnList = "estado"),
         @Index(name = "idx_oferta_fecha_pub", columnList = "fecha_publicacion")
@@ -122,7 +122,7 @@ public class Oferta {
     @ManyToMany
     @JoinTable(
             name = "ofertas_habilidades",
-            schema = "schema_ofertas",
+            schema = "public",
             joinColumns = @JoinColumn(name = "oferta_id"),
             inverseJoinColumns = @JoinColumn(name = "habilidad_id")
     )
@@ -141,3 +141,4 @@ public class Oferta {
         return estado == EstadoOferta.PUBLICADA && aceptaPostulaciones != null && aceptaPostulaciones && fechaVencimiento != null && fechaVencimiento.isAfter(OffsetDateTime.now());
     }
 }
+

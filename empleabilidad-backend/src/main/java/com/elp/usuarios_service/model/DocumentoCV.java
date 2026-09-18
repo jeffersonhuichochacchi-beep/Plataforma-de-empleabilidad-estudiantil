@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "documentos_cv", schema = "schema_usuarios")
+@Table(name = "documentos_cv", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -48,3 +48,4 @@ public class DocumentoCV {
     @Column(name = "fecha_desactivacion")
     private Timestamp fechaDesactivacion;
 }
+

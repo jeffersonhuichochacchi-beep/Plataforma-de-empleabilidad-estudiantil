@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Entity
-@Table(name = "requisitos_oferta", schema = "schema_ofertas")
+@Table(name = "requisitos_oferta", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -38,3 +38,4 @@ public class RequisitoOferta {
 
     private String nivel;
 }
+

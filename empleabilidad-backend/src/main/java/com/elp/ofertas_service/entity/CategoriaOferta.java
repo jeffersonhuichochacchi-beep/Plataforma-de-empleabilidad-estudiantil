@@ -12,7 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "categorias_oferta", schema = "schema_ofertas")
+@Table(name = "categorias_oferta", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -41,3 +41,4 @@ public class CategoriaOferta {
     @Column(name = "fecha_actualizacion")
     private OffsetDateTime fechaActualizacion;
 }
+

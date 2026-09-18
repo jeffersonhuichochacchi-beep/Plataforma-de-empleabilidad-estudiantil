@@ -16,11 +16,11 @@ import com.elp.usuarios_service.model.enums.Rol;
 
 @Repository
 public interface UsuarioBaseRepository extends JpaRepository<UsuarioBase, UUID> {
-    Optional<UsuarioBase> findByEmail(String email);
+    Optional<UsuarioBase> findByAuthUserId(UUID authUserId);
     long countByActivoTrue();
     long countByEstadoCuenta(EstadoCuenta estadoCuenta);
     long countByRol(Rol rol);
 
-    @Query("select u from UsuarioBase u where (:q = '' or lower(u.email) like concat('%', :q, '%')) and (:rol is null or u.rol = :rol) and (:estado is null or u.estadoCuenta = :estado)")
-    Page<UsuarioBase> buscarAdministrativos(@Param("q") String q, @Param("rol") Rol rol, @Param("estado") EstadoCuenta estado, Pageable pageable);
+    @Query("select u from UsuarioBase u where (:rol is null or u.rol = :rol) and (:estado is null or u.estadoCuenta = :estado)")
+    Page<UsuarioBase> buscarAdministrativos(@Param("rol") Rol rol, @Param("estado") EstadoCuenta estado, Pageable pageable);
 }

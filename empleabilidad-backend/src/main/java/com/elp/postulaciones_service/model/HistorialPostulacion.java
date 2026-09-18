@@ -12,7 +12,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "historial_postulaciones", schema = "schema_postulaciones", indexes = {
+@Table(name = "historial_postulaciones", schema = "public", indexes = {
     @Index(name = "idx_historial_postulacion", columnList = "postulacion_id")
 })
 @Data
@@ -47,3 +47,4 @@ public class HistorialPostulacion {
     @Column(columnDefinition = "TEXT")
     private String comentario;
 }
+

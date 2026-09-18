@@ -6,8 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "administradores", schema = "schema_usuarios")
+@Table(name = "administradores", schema = "public")
 @SuperBuilder
 @NoArgsConstructor
 public class Administrador extends UsuarioBase {
 }
+

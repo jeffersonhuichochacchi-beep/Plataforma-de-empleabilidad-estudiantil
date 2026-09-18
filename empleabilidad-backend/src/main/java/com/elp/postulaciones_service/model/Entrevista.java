@@ -14,7 +14,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Entity
-@Table(name = "entrevistas", schema = "schema_postulaciones", indexes = {
+@Table(name = "entrevistas", schema = "public", indexes = {
     @Index(name = "idx_entrevista_postulacion", columnList = "postulacion_id")
 })
 @Data
@@ -77,3 +77,4 @@ public class Entrevista {
         }
     }
 }
+

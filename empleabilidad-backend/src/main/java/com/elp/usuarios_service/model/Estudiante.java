@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "estudiantes", schema = "schema_usuarios")
+@Table(name = "estudiantes", schema = "public")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
@@ -41,3 +41,4 @@ public class Estudiante extends UsuarioBase {
     @Column(name = "url_cv_pdf")
     private String urlCvPdf;
 }
+

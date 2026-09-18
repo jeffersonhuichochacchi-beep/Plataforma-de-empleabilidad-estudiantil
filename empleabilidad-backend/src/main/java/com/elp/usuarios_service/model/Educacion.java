@@ -10,7 +10,7 @@ import java.sql.Date;
 import java.util.UUID;
 
 @Entity
-@Table(name = "educacion", schema = "schema_usuarios")
+@Table(name = "educacion", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -44,3 +44,4 @@ public class Educacion {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 }
+

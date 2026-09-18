@@ -46,6 +46,8 @@ public class ConsultaDocumentoService {
     }
 
     private synchronized String obtenerToken() {
+        // El token directo pertenece al servicio DNI/RUC. El usuario/contraseña
+        // de facturación solo queda como fallback porque genera otro tipo de JWT.
         if (directToken != null && !directToken.trim().isEmpty()) {
             return directToken.trim();
         }

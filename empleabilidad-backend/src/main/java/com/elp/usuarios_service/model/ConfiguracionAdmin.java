@@ -7,7 +7,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
-@Table(name = "configuraciones_admin", schema = "schema_usuarios")
+@Table(name = "configuraciones_admin", schema = "public")
 public class ConfiguracionAdmin {
     @Id
     private String id;
@@ -19,3 +19,4 @@ public class ConfiguracionAdmin {
     public String getValor() { return valor; }
     public void setValor(String valor) { this.valor = valor; this.actualizadoEn = Instant.now(); }
 }
+

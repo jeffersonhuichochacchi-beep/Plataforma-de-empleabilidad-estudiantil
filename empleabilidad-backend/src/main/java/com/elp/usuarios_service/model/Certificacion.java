@@ -10,7 +10,7 @@ import java.sql.Date;
 import java.util.UUID;
 
 @Entity
-@Table(name = "certificaciones", schema = "schema_usuarios")
+@Table(name = "certificaciones", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -42,3 +42,4 @@ public class Certificacion {
     @Column(name = "url_verificacion")
     private String urlVerificacion;
 }
+

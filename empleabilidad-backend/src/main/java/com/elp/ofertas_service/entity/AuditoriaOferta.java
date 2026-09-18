@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "auditoria_ofertas", schema = "schema_ofertas")
+@Table(name = "auditoria_ofertas", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -43,3 +43,4 @@ public class AuditoriaOferta {
 
     private String ip;
 }
+

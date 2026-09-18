@@ -10,7 +10,7 @@ import java.sql.Date;
 import java.util.UUID;
 
 @Entity
-@Table(name = "proyectos", schema = "schema_usuarios")
+@Table(name = "proyectos", schema = "public")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -41,3 +41,4 @@ public class Proyecto {
     @Column(name = "github_url")
     private String githubUrl;
 }
+
