@@ -1287,7 +1287,6 @@ export const AdminUsuariosView: React.FC = () => {
                 >
                   <option value="ESTUDIANTE">Candidato / Estudiante</option>
                   <option value="EMPRESA">Empresa</option>
-                  <option value="RECLUTADOR">Reclutador Externo</option>
                   <option value="ADMINISTRADOR">Administrador</option>
                 </select>
               </div>
