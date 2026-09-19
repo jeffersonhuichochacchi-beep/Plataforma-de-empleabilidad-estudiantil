@@ -509,7 +509,9 @@ export const AdminPostulacionesView: React.FC = () => {
     total:            postulaciones.length,
     pendientes:       postulaciones.filter(p => p.estado === 'PENDIENTE').length,
     enRevision:       postulaciones.filter(p => p.estado === 'EN_REVISION').length,
-    entrevistas:      postulaciones.filter(p => p.estado === 'ENTREVISTA_PROGRAMADA').length,
+    // Una entrevista puede permanecer registrada aunque la postulación cambie
+    // después a ACEPTADO u otro estado. La fecha es la fuente real del dato.
+    entrevistas:      postulaciones.filter(p => Boolean(p.entrevistaFecha)).length,
     aceptados:        postulaciones.filter(p => p.estado === 'ACEPTADO').length,
     rechazados:       postulaciones.filter(p => p.estado === 'RECHAZADO').length,
     preseleccionados: postulaciones.filter(p => p.estado === 'PRESELECCIONADO').length,
@@ -521,7 +523,7 @@ export const AdminPostulacionesView: React.FC = () => {
   const filtered = useMemo(() => {
     return postulaciones
       .filter(p => {
-        if (activeTab === 'ENTREVISTAS') return p.estado === 'ENTREVISTA_PROGRAMADA' || p.estado === 'OFERTA_ENVIADA';
+        if (activeTab === 'ENTREVISTAS') return Boolean(p.entrevistaFecha);
         if (selectedEstado !== 'TODOS' && p.estado !== selectedEstado) return false;
         if (selectedModalidad !== 'TODOS' && p.ofertaModalidad !== selectedModalidad) return false;
         if (searchTerm.trim()) {
