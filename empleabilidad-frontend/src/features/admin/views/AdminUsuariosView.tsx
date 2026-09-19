@@ -58,6 +58,26 @@ export interface AdminUserItem {
   verificada?: boolean;
 }
 
+const getLastAccessDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatLastAccess = (value: string) => {
+  const date = getLastAccessDate(value);
+  if (!date) return value || 'Nunca';
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (elapsedSeconds < 60) return 'Ahora mismo';
+  if (elapsedSeconds < 3600) return `Hace ${Math.floor(elapsedSeconds / 60)} min`;
+  if (elapsedSeconds < 86400) return `Hace ${Math.floor(elapsedSeconds / 3600)} h`;
+  return date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const hasRecentAccess = (value: string) => {
+  const date = getLastAccessDate(value);
+  return Boolean(date && Date.now() - date.getTime() < 5 * 60 * 1000);
+};
+
 // ─── Datos Mock Enriquecidos ──────────────────────────────────────────────────
 // Datos históricos conservados para referencia; la vista usa exclusivamente
 // la respuesta del backend y no los muestra como datos reales.
@@ -327,8 +347,8 @@ export const AdminUsuariosView: React.FC = () => {
 
   useEffect(() => {
     let mounted = true;
-    const loadUsers = async () => {
-      setIsLoadingUsers(true);
+    const loadUsers = async (showSpinner = true) => {
+      if (showSpinner) setIsLoadingUsers(true);
       try {
         // La tabla y el resumen son independientes. La tabla no debe quedarse
         // esperando a que termine la consulta secundaria de roles.
@@ -348,17 +368,18 @@ export const AdminUsuariosView: React.FC = () => {
           toast.error('No se pudo cargar la lista de usuarios');
         }
       } catch {
-        if (mounted) {
+        if (mounted && showSpinner) {
           setUsers([]);
           setRoleCounts({});
           toast.error('No se pudo cargar la lista de usuarios');
         }
       } finally {
-        if (mounted) setIsLoadingUsers(false);
+        if (mounted && showSpinner) setIsLoadingUsers(false);
       }
     };
     void loadUsers();
-    return () => { mounted = false; };
+    const interval = window.setInterval(() => void loadUsers(false), 15000);
+    return () => { mounted = false; window.clearInterval(interval); };
   }, []);
 
   // Acciones de Usuario
@@ -994,7 +1015,9 @@ export const AdminUsuariosView: React.FC = () => {
                         <td className="px-4 py-4 text-xs text-slate-500">
                           <div className="flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{user.ultimoAcceso}</span>
+                            <span className={hasRecentAccess(user.ultimoAcceso) ? 'font-semibold text-emerald-600' : ''}>
+                              {formatLastAccess(user.ultimoAcceso)}
+                            </span>
                           </div>
                         </td>
 
@@ -1159,7 +1182,9 @@ export const AdminUsuariosView: React.FC = () => {
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                     <Clock className="w-3.5 h-3.5" /> Último Ingreso
                   </div>
-                  <p className="text-sm font-semibold text-slate-800">{detailUser.ultimoAcceso}</p>
+                  <p className={`text-sm font-semibold ${hasRecentAccess(detailUser.ultimoAcceso) ? 'text-emerald-600' : 'text-slate-800'}`}>
+                    {formatLastAccess(detailUser.ultimoAcceso)}
+                  </p>
                 </div>
               </div>
 

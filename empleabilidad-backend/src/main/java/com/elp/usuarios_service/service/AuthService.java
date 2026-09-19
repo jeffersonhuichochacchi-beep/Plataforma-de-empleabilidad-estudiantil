@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.sql.Timestamp;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +26,7 @@ public class AuthService {
     private final EmpresaRepository empresaRepository;
     private final SupabaseAuthClient supabaseAuthClient;
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         SupabaseAuthClient.Session session = supabaseAuthClient.login(request.getEmail(), request.getPassword());
         UsuarioBase usuario = usuarioRepository.findByAuthUserId(session.authUserId()).orElseThrow(() ->
@@ -33,6 +36,8 @@ public class AuthService {
                 || EstadoCuenta.BLOQUEADA.equals(usuario.getEstadoCuenta())) {
             throw new CuentaBloqueadaException("La cuenta está bloqueada o deshabilitada. Contacta al administrador.");
         }
+        usuario.setUltimoAcceso(Timestamp.from(Instant.now()));
+        usuarioRepository.save(usuario);
         return AuthResponse.builder().token(session.accessToken()).build();
     }
 
