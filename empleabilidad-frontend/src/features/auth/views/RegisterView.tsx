@@ -7,7 +7,6 @@ import { Input } from '@/shared/components/Input';
 import { authService } from '../services/auth.service';
 import { consultasService } from '../services/consultas.service';
 import type { DniResponse, RucResponse } from '../services/consultas.service';
-import { useAuthStore } from '../store/useAuthStore';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { UserCircle, Building2, ShieldCheck, Eye, EyeOff, Search, Loader2, CheckCircle2, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -34,7 +33,6 @@ export const RegisterView: React.FC = () => {
   const [role, setRole] = useState<'ESTUDIANTE' | 'EMPRESA'>('ESTUDIANTE');
   const [showPassword, setShowPassword] = useState(false);
   const location = useLocation();
-  const { login } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const roleFromSelection = searchParams.get('role');
@@ -156,12 +154,10 @@ export const RegisterView: React.FC = () => {
 
   const onSubmitCandidato = async (data: CandidatoFormValues) => {
     try {
-      const response = await authService.registerEstudiante(data);
-      localStorage.setItem('jwt_token', response.token);
-      const user = await authService.getMe();
-      login(response.token, user);
+      await authService.registerEstudiante(data);
+      localStorage.removeItem('jwt_token');
       toast.success('¡Cuenta creada exitosamente!', { icon: '🎉' });
-      navigate('/auth/login');
+      navigate('/auth/login?role=ESTUDIANTE', { replace: true });
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Error al registrar candidato');
     }
@@ -169,12 +165,10 @@ export const RegisterView: React.FC = () => {
 
   const onSubmitEmpresa = async (data: EmpresaFormValues) => {
     try {
-      const response = await authService.registerEmpresa(data);
-      localStorage.setItem('jwt_token', response.token);
-      const user = await authService.getMe();
-      login(response.token, user);
+      await authService.registerEmpresa(data);
+      localStorage.removeItem('jwt_token');
       toast.success('¡Empresa registrada correctamente!', { icon: '🏢' });
-      navigate('/auth/login');
+      navigate('/auth/login?role=EMPRESA', { replace: true });
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Error al registrar empresa');
     }
