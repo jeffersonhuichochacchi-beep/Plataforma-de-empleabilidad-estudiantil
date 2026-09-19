@@ -34,7 +34,7 @@ public class AuthService {
         if (Boolean.TRUE.equals(usuario.getBloqueado())
                 || !Boolean.TRUE.equals(usuario.getActivo())
                 || EstadoCuenta.BLOQUEADA.equals(usuario.getEstadoCuenta())) {
-            throw new CuentaBloqueadaException("La cuenta está bloqueada o deshabilitada. Contacta al administrador.");
+            throw new CuentaBloqueadaException("Tu cuenta está bloqueada.");
         }
         usuario.setUltimoAcceso(Timestamp.from(Instant.now()));
         usuarioRepository.save(usuario);

@@ -69,7 +69,14 @@ export const LoginView: React.FC = () => {
         navigate('/candidato/buscar');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Credenciales inválidas');
+      const status = error.response?.status;
+      const responseMessage = error.response?.data?.message || '';
+      const message = status === 403
+        || /cuenta.*(bloqueada|deshabilitada)|bloquead[ao]/i.test(responseMessage)
+        || /problema interno|error inesperado|error interno|ha ocurrido un error interno/i.test(responseMessage)
+        ? 'Tu cuenta está bloqueada.'
+        : responseMessage || 'Credenciales inválidas';
+      toast.error(message);
       localStorage.removeItem('jwt_token');
     }
   };
