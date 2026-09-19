@@ -10,6 +10,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -85,6 +87,37 @@ public class GlobalExceptionHandler {
                 .validationErrors(errors)
                 .build();
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Supabase devuelve 4xx cuando el correo ya existe, la contraseña no es
+     * válida o la service key no tiene permisos. Sin este handler RestClient
+     * lo convierte en un 500 genérico y el frontend no puede explicar el
+     * problema al usuario.
+     */
+    @ExceptionHandler(RestClientResponseException.class)
+    public ResponseEntity<ErrorResponse> handleSupabaseException(RestClientResponseException ex, HttpServletRequest request) {
+        HttpStatus status = ex.getStatusCode().is4xxClientError()
+                ? (ex.getStatusCode().value() == 422 ? HttpStatus.CONFLICT : HttpStatus.BAD_GATEWAY)
+                : HttpStatus.BAD_GATEWAY;
+        String message = status == HttpStatus.CONFLICT
+                ? "El correo ya está registrado en Supabase"
+                : "El servicio de autenticación no está disponible o rechazó la solicitud";
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now()).status(status.value())
+                .error(status.getReasonPhrase()).message(message)
+                .path(request.getRequestURI()).build();
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityException(DataIntegrityViolationException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now()).status(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .message("No se pudo guardar el perfil. Verifica que la base de datos esté actualizada")
+                .path(request.getRequestURI()).build();
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(Exception.class)
