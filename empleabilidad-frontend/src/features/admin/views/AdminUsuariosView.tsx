@@ -1024,14 +1024,14 @@ export const AdminUsuariosView: React.FC = () => {
                               title={user.estadoCuenta === 'BLOQUEADA' ? 'Desbloquear cuenta' : 'Bloquear cuenta'}
                               className={`p-1.5 rounded-lg transition-colors ${
                                 user.estadoCuenta === 'BLOQUEADA'
-                                  ? 'text-emerald-600 hover:bg-emerald-50'
-                                  : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                  ? 'text-red-600 hover:bg-red-50'
+                                  : 'text-emerald-600 hover:bg-emerald-50'
                               }`}
                             >
                               {user.estadoCuenta === 'BLOQUEADA' ? (
-                                <Unlock className="w-4 h-4" />
-                              ) : (
                                 <Lock className="w-4 h-4" />
+                              ) : (
+                                <Unlock className="w-4 h-4" />
                               )}
                             </button>
 
