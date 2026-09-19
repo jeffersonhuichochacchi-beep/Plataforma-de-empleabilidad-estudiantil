@@ -1,6 +1,7 @@
 package com.elp.usuarios_service.service;
 
 import com.elp.usuarios_service.dto.*;
+import com.elp.usuarios_service.exception.CuentaBloqueadaException;
 import com.elp.usuarios_service.model.Empresa;
 import com.elp.usuarios_service.model.Estudiante;
 import com.elp.usuarios_service.model.UsuarioBase;
@@ -25,8 +26,13 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         SupabaseAuthClient.Session session = supabaseAuthClient.login(request.getEmail(), request.getPassword());
-        usuarioRepository.findByAuthUserId(session.authUserId()).orElseThrow(() ->
+        UsuarioBase usuario = usuarioRepository.findByAuthUserId(session.authUserId()).orElseThrow(() ->
                 new com.elp.usuarios_service.exception.InvalidCredentialsException("No existe perfil para el usuario Auth"));
+        if (Boolean.TRUE.equals(usuario.getBloqueado())
+                || !Boolean.TRUE.equals(usuario.getActivo())
+                || EstadoCuenta.BLOQUEADA.equals(usuario.getEstadoCuenta())) {
+            throw new CuentaBloqueadaException("La cuenta está bloqueada o deshabilitada. Contacta al administrador.");
+        }
         return AuthResponse.builder().token(session.accessToken()).build();
     }
 
