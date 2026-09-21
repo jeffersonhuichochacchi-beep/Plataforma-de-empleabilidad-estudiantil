@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+// Use environment variable or fallback to localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api';
+
 // By default we point to the API gateway or users service for auth
 export const api = axios.create({
-  baseURL: 'http://localhost:8081/api', // backend consolidado
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -10,23 +13,23 @@ export const api = axios.create({
 
 // For multiple services, we might define specific instances or use paths
 export const ofertasApi = axios.create({
-  baseURL: 'http://localhost:8081/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
 // Consultas públicas: no envían un JWT posiblemente vencido.
 export const ofertasPublicApi = axios.create({
-  baseURL: 'http://localhost:8081/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
 export const usuariosPublicApi = axios.create({
-  baseURL: 'http://localhost:8081/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
 export const postulacionesApi = axios.create({
-  baseURL: 'http://localhost:8081/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
