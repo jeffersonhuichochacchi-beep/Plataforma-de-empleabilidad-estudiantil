@@ -169,11 +169,15 @@ public class PerfilService {
     public void cambiarPassword(UUID usuarioId, String email, PasswordChangeRequest request) {
         UsuarioBase usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        if (email == null || email.isBlank()) {
+        String accountEmail = email;
+        if (accountEmail == null || accountEmail.isBlank()) {
+            accountEmail = supabaseAuthClient.getUserEmail(usuario.getAuthUserId());
+        }
+        if (accountEmail == null || accountEmail.isBlank()) {
             throw new IllegalArgumentException("No se pudo identificar el correo de la cuenta");
         }
         // Verifica la contraseña actual contra Supabase antes de permitir el cambio.
-        supabaseAuthClient.login(email, request.getCurrentPassword());
+        supabaseAuthClient.login(accountEmail, request.getCurrentPassword());
         supabaseAuthClient.updatePassword(usuario.getAuthUserId(), request.getNewPassword());
     }
 

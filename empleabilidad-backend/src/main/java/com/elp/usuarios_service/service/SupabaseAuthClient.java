@@ -55,6 +55,16 @@ public class SupabaseAuthClient {
                 .retrieve().toBodilessEntity();
     }
 
+    public String getUserEmail(UUID authUserId) {
+        requireConfigured();
+        Map<?, ?> body = client().get().uri(url + "/auth/v1/admin/users/" + authUserId)
+                .header("apikey", serviceRoleKey)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceRoleKey)
+                .retrieve().body(Map.class);
+        Object email = body == null ? null : body.get("email");
+        return email == null ? null : email.toString();
+    }
+
     private RestClient client() { return restClientBuilder.build(); }
     private void requireConfigured() {
         if (url.isBlank() || anonKey.isBlank() || serviceRoleKey.isBlank())
