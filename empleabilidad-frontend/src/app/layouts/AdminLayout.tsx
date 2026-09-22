@@ -39,6 +39,7 @@ export const AdminLayout = () => {
   const [showModules, setShowModules] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('admin_theme') === 'dark');
+  const [language, setLanguage] = useState<'es' | 'en'>(() => localStorage.getItem('admin_language') === 'en' ? 'en' : 'es');
   const searchRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = () => {
@@ -73,6 +74,28 @@ export const AdminLayout = () => {
 
   const allPages = useMemo(() => [...menuItems, ...appsPages], []);
 
+  const translate = (label: string, path?: string) => {
+    if (language === 'es') return label;
+    const byPath: Record<string, string> = {
+      '/admin/usuarios': 'User Management', '/admin/ofertas': 'Job Management',
+      '/admin/postulaciones': 'Applications', '/admin/estadisticas': 'Statistics',
+      '/admin/usuarios/listado': 'Users', '/admin/usuarios/candidatos': 'Candidates',
+      '/admin/usuarios/empresas': 'Companies', '/admin/usuarios/roles': 'Roles & Permissions',
+      '/admin/ofertas/listado': 'Job Offers', '/admin/ofertas/categorias': 'Offer Categories',
+      '/admin/postulaciones/listado': 'Applications', '/admin/postulaciones/estados': 'Application Status',
+      '/admin/postulaciones/entrevistas': 'Interviews', '/admin/notificaciones': 'Notifications',
+      '/admin/reportes': 'Reports', '/admin/configuracion': 'Settings'
+    };
+    if (path && byPath[path]) return byPath[path];
+    const translations: Record<string, string> = {
+      Dashboard: 'Dashboard', Usuarios: 'Users', Candidatos: 'Candidates', Empresas: 'Companies',
+      Postulaciones: 'Applications', Entrevistas: 'Interviews', Notificaciones: 'Notifications', Reportes: 'Reports',
+      'Ofertas de Empleo': 'Job Offers', 'Roles y Permisos': 'Roles & Permissions',
+      'Estado de Postulaciones': 'Application Status'
+    };
+    return translations[label] ?? label;
+  };
+
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === '/') {
@@ -87,6 +110,10 @@ export const AdminLayout = () => {
   useEffect(() => {
     localStorage.setItem('admin_theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
+
+  useEffect(() => {
+    localStorage.setItem('admin_language', language);
+  }, [language]);
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -104,7 +131,7 @@ export const AdminLayout = () => {
   const toggleTheme = () => setDarkMode(value => !value);
 
   return (
-    <div className={`flex h-screen overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`admin-shell ${darkMode ? 'admin-dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} flex h-screen overflow-hidden`}>
       {/* Sidebar */}
       <aside className={`${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'} ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border-r flex flex-col transition-all duration-200`}>
         {/* Logo */}
@@ -136,7 +163,7 @@ export const AdminLayout = () => {
                 }
               >
                 <item.icon className="w-5 h-5" />
-                <span className="flex-1">{item.label}</span>
+                <span className="flex-1">{translate(item.label, item.path)}</span>
                 {item.badge && (
                   <span className="px-2 py-0.5 text-xs font-semibold bg-slate-200 text-slate-700 rounded">
                     {item.badge}
@@ -170,7 +197,7 @@ export const AdminLayout = () => {
                   }
                 >
                   <item.icon className="w-5 h-5" />
-                  <span className="flex-1">{item.label}</span>
+                  <span className="flex-1">{translate(item.label, item.path)}</span>
                   {item.badge && (
                     <span className="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-600 rounded">
                       {item.badge}
@@ -203,7 +230,7 @@ export const AdminLayout = () => {
               <input
                 ref={searchRef}
                 type="text"
-                placeholder="Buscar (Ctrl+/)"
+                placeholder={language === 'en' ? 'Search (Ctrl+/)' : 'Buscar (Ctrl+/)'}
                 value={search}
                 onChange={event => setSearch(event.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
@@ -216,9 +243,9 @@ export const AdminLayout = () => {
             <div className="relative">
             <button onClick={() => setShowLanguages(value => !value)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors relative" title="Idioma">
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              <img src="https://flagcdn.com/w40/us.png" alt="US" className="w-5 h-5 rounded" />
+              <img src={language === 'en' ? 'https://flagcdn.com/w40/us.png' : 'https://flagcdn.com/w40/co.png'} alt={language.toUpperCase()} className="w-5 h-5 rounded" />
             </button>
-            {showLanguages && <div className="absolute right-0 top-11 z-50 w-36 rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-lg"><button onClick={() => { setShowLanguages(false); toast.success('Idioma español seleccionado.'); }} className="w-full rounded px-3 py-2 text-left hover:bg-slate-100">Español</button><button onClick={() => { setShowLanguages(false); toast.success('English selected.'); }} className="w-full rounded px-3 py-2 text-left hover:bg-slate-100">English</button></div>}
+            {showLanguages && <div className="absolute right-0 top-11 z-50 w-36 rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-lg"><button onClick={() => { setLanguage('es'); setShowLanguages(false); toast.success('Idioma español seleccionado.'); }} className="w-full rounded px-3 py-2 text-left hover:bg-slate-100">Español</button><button onClick={() => { setLanguage('en'); setShowLanguages(false); toast.success('English selected.'); }} className="w-full rounded px-3 py-2 text-left hover:bg-slate-100">English</button></div>}
             </div>
             
             <button onClick={toggleTheme} className="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Cambiar tema">
@@ -229,7 +256,7 @@ export const AdminLayout = () => {
             <button onClick={() => setShowModules(value => !value)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Módulos">
               <Grid3x3 className="w-5 h-5 text-slate-600" />
             </button>
-            {showModules && <div className="absolute right-0 top-11 z-50 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg"><p className="px-2 pb-1 text-xs font-semibold uppercase text-slate-400">Accesos rápidos</p>{appsPages.slice(0, 6).map(page => <button key={page.path} onClick={() => { navigate(page.path); setShowModules(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-slate-700 hover:bg-violet-50">{page.label}</button>)}</div>}
+            {showModules && <div className="absolute right-0 top-11 z-50 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg"><p className="px-2 pb-1 text-xs font-semibold uppercase text-slate-400">{language === 'en' ? 'Quick access' : 'Accesos rápidos'}</p>{appsPages.slice(0, 6).map(page => <button key={page.path} onClick={() => { navigate(page.path); setShowModules(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-slate-700 hover:bg-violet-50">{translate(page.label, page.path)}</button>)}</div>}
             </div>
             
             <button onClick={() => navigate('/admin/notificaciones')} className="p-2 hover:bg-slate-100 rounded-lg transition-colors relative" title="Notificaciones">

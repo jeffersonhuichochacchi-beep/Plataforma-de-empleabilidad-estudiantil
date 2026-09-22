@@ -30,6 +30,22 @@
   }
 }
 
+/* Ajustes globales del panel administrativo en tema oscuro. */
+.admin-dark main .bg-white,
+.admin-dark main .bg-slate-50 { background-color: #111827 !important; }
+.admin-dark main .bg-slate-100 { background-color: #1f2937 !important; }
+.admin-dark main .text-slate-900,
+.admin-dark main .text-slate-800,
+.admin-dark main .text-slate-700 { color: #e5e7eb !important; }
+.admin-dark main .text-slate-600,
+.admin-dark main .text-slate-500 { color: #94a3b8 !important; }
+.admin-dark main [class*="border-slate"] { border-color: #334155 !important; }
+.admin-dark main input,
+.admin-dark main textarea,
+.admin-dark main select { background-color: #1f2937; color: #e5e7eb; border-color: #475569; }
+.admin-dark main input::placeholder,
+.admin-dark main textarea::placeholder { color: #94a3b8; }
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
