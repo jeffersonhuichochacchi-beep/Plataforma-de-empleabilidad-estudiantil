@@ -1,4 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -20,6 +21,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { useAuthStore } from '../../features/auth/store/useAuthStore';
+import toast from 'react-hot-toast';
 
 interface MenuItem {
   icon: any;
@@ -32,6 +34,12 @@ interface MenuItem {
 export const AdminLayout = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [search, setSearch] = useState('');
+  const [showModules, setShowModules] = useState(false);
+  const [showLanguages, setShowLanguages] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('admin_theme') === 'dark');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = () => {
     if (user) {
@@ -63,10 +71,42 @@ export const AdminLayout = () => {
     { icon: Columns3, label: 'Configuración', path: '/admin/configuracion' },
   ];
 
+  const allPages = useMemo(() => [...menuItems, ...appsPages], []);
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === '/') {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('admin_theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  const handleSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    const term = search.trim().toLowerCase();
+    if (!term) return;
+    const match = allPages.find(page => page.label.toLowerCase().includes(term));
+    if (match) {
+      navigate(match.path);
+      setSearch('');
+    } else {
+      toast.error('No se encontró un módulo con ese nombre.');
+    }
+  };
+
+  const toggleTheme = () => setDarkMode(value => !value);
+
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className={`flex h-screen overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
+      <aside className={`${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'} ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border-r flex flex-col transition-all duration-200`}>
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-slate-200">
           <div className="flex items-center gap-2">
@@ -151,39 +191,48 @@ export const AdminLayout = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center px-6">
+        <header className={`h-16 border-b flex items-center px-6 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <div className="flex items-center flex-1 gap-4">
-            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <button onClick={() => setSidebarCollapsed(value => !value)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Mostrar u ocultar menú">
               <Menu className="w-5 h-5 text-slate-600" />
             </button>
             
             {/* Search */}
-            <div className="flex-1 max-w-md relative">
+            <form onSubmit={handleSearch} className="flex-1 max-w-md relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
+                ref={searchRef}
                 type="text"
                 placeholder="Buscar (Ctrl+/)"
+                value={search}
+                onChange={event => setSearch(event.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
-            </div>
+            </form>
           </div>
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors relative">
+            <div className="relative">
+            <button onClick={() => setShowLanguages(value => !value)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors relative" title="Idioma">
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               <img src="https://flagcdn.com/w40/us.png" alt="US" className="w-5 h-5 rounded" />
             </button>
+            {showLanguages && <div className="absolute right-0 top-11 z-50 w-36 rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-lg"><button onClick={() => { setShowLanguages(false); toast.success('Idioma español seleccionado.'); }} className="w-full rounded px-3 py-2 text-left hover:bg-slate-100">Español</button><button onClick={() => { setShowLanguages(false); toast.success('English selected.'); }} className="w-full rounded px-3 py-2 text-left hover:bg-slate-100">English</button></div>}
+            </div>
             
-            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <button onClick={toggleTheme} className="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Cambiar tema">
               <Moon className="w-5 h-5 text-slate-600" />
             </button>
             
-            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <div className="relative">
+            <button onClick={() => setShowModules(value => !value)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Módulos">
               <Grid3x3 className="w-5 h-5 text-slate-600" />
             </button>
+            {showModules && <div className="absolute right-0 top-11 z-50 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg"><p className="px-2 pb-1 text-xs font-semibold uppercase text-slate-400">Accesos rápidos</p>{appsPages.slice(0, 6).map(page => <button key={page.path} onClick={() => { navigate(page.path); setShowModules(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-slate-700 hover:bg-violet-50">{page.label}</button>)}</div>}
+            </div>
             
-            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors relative">
+            <button onClick={() => navigate('/admin/notificaciones')} className="p-2 hover:bg-slate-100 rounded-lg transition-colors relative" title="Notificaciones">
               <Bell className="w-5 h-5 text-slate-600" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
