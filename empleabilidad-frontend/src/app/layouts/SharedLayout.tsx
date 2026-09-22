@@ -91,11 +91,6 @@ export const SharedLayout: React.FC = () => {
               <span className="text-2xl font-black tracking-tight text-slate-900">Emplea<span className="text-blue-600">Pro</span></span>
             </Link>
             
-            <nav className="hidden md:flex gap-8">
-              <Link to="/empleos" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Empleos</Link>
-              <Link to="/empresas" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Empresas</Link>
-            </nav>
-
             <div className="flex items-center gap-4">
               <Link to="/auth">
                 <Button variant="ghost">Iniciar Sesión</Button>
