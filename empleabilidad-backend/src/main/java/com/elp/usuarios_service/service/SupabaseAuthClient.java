@@ -47,6 +47,14 @@ public class SupabaseAuthClient {
                 .retrieve().toBodilessEntity();
     }
 
+    public void updatePassword(UUID authUserId, String password) {
+        requireConfigured();
+        client().put().uri(url + "/auth/v1/admin/users/" + authUserId)
+                .header("apikey", serviceRoleKey).header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceRoleKey)
+                .contentType(MediaType.APPLICATION_JSON).body(Map.of("password", password))
+                .retrieve().toBodilessEntity();
+    }
+
     private RestClient client() { return restClientBuilder.build(); }
     private void requireConfigured() {
         if (url.isBlank() || anonKey.isBlank() || serviceRoleKey.isBlank())

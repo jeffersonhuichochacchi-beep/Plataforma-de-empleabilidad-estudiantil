@@ -170,7 +170,7 @@ export const CompanyProfileView: React.FC = () => {
   };
 
   // Cambiar contraseña
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPass || !newPass || !confirmPass) {
       toast.error('Por favor completa todos los campos de contraseña.');
@@ -184,10 +184,15 @@ export const CompanyProfileView: React.FC = () => {
       toast.error('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
-    toast.success('Contraseña de acceso actualizada con éxito.');
-    setCurrentPass('');
-    setNewPass('');
-    setConfirmPass('');
+    try {
+      await profileService.changePassword(currentPass, newPass);
+      toast.success('Contraseña de acceso actualizada con éxito.');
+      setCurrentPass('');
+      setNewPass('');
+      setConfirmPass('');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'No se pudo actualizar la contraseña.');
+    }
   };
 
   if (isLoading) return <div className="flex min-h-64 items-center justify-center text-slate-500">Cargando perfil de empresa...</div>;

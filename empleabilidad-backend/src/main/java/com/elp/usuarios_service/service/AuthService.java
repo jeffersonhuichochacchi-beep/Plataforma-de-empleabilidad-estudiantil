@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 import java.sql.Timestamp;
 import java.time.Instant;
+import org.springframework.web.client.RestClientResponseException;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +29,14 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
-        SupabaseAuthClient.Session session = supabaseAuthClient.login(request.getEmail(), request.getPassword());
+        SupabaseAuthClient.Session session;
+        try {
+            session = supabaseAuthClient.login(request.getEmail(), request.getPassword());
+        } catch (RestClientResponseException ex) {
+            // Supabase responde 400/401 para credenciales inválidas; no debe
+            // convertirse en un 500 para el cliente de la plataforma.
+            throw new com.elp.usuarios_service.exception.InvalidCredentialsException("Credenciales inválidas");
+        }
         UsuarioBase usuario = usuarioRepository.findByAuthUserId(session.authUserId()).orElseThrow(() ->
                 new com.elp.usuarios_service.exception.InvalidCredentialsException("No existe perfil para el usuario Auth"));
         if (Boolean.TRUE.equals(usuario.getBloqueado())

@@ -5,6 +5,7 @@ import com.elp.usuarios_service.dto.PerfilUpdateRequest;
 import com.elp.usuarios_service.dto.ExperienciaRequest;
 import com.elp.usuarios_service.dto.EducacionRequest;
 import com.elp.usuarios_service.dto.HabilidadRequest;
+import com.elp.usuarios_service.dto.PasswordChangeRequest;
 import com.elp.usuarios_service.service.PerfilService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ContentDisposition;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
@@ -70,6 +73,17 @@ public class PerfilController {
         UUID usuarioId = usuarioId(authentication);
         if (usuarioId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(perfilService.actualizarPerfil(usuarioId, request));
+    }
+
+    @PostMapping("/password")
+    public ResponseEntity<Void> cambiarPassword(
+            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody PasswordChangeRequest request) {
+        UUID usuarioId = usuarioId(authentication);
+        if (usuarioId == null) return ResponseEntity.status(401).build();
+        perfilService.cambiarPassword(usuarioId, jwt != null ? jwt.getClaimAsString("email") : null, request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/experiencias")

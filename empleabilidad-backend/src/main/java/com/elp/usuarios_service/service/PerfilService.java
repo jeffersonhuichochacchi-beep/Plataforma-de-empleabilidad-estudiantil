@@ -7,6 +7,7 @@ import com.elp.usuarios_service.dto.EducacionRequest;
 import com.elp.usuarios_service.dto.ExperienciaRequest;
 import com.elp.usuarios_service.dto.HabilidadRequest;
 import com.elp.usuarios_service.dto.PerfilUpdateRequest;
+import com.elp.usuarios_service.dto.PasswordChangeRequest;
 import com.elp.usuarios_service.repository.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -164,6 +165,18 @@ public class PerfilService {
         if (request.getEnlacePortafolio() != null) estudiante.setEnlacePortafolio(request.getEnlacePortafolio());
         estudianteRepository.save(estudiante);
         return obtenerMiPerfil(usuarioId);
+    }
+
+    @Transactional(readOnly = true)
+    public void cambiarPassword(UUID usuarioId, String email, PasswordChangeRequest request) {
+        UsuarioBase usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("No se pudo identificar el correo de la cuenta");
+        }
+        // Verifica la contraseña actual contra Supabase antes de permitir el cambio.
+        supabaseAuthClient.login(email, request.getCurrentPassword());
+        supabaseAuthClient.updatePassword(usuario.getAuthUserId(), request.getNewPassword());
     }
 
     private void actualizarEmpresa(UsuarioBase usuario, Empresa empresa, PerfilUpdateRequest request) {

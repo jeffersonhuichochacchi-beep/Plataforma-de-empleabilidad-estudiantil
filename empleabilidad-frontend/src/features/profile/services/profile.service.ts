@@ -28,6 +28,9 @@ export const profileService = {
   async updateProfile(payload: Record<string, unknown>): Promise<PerfilResponseDTO> {
     const { data } = await api.put<PerfilResponseDTO>('/perfil/me', payload); return data;
   },
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.post('/perfil/password', { currentPassword, newPassword });
+  },
   async addExperience(payload: Record<string, unknown>): Promise<ExperienciaPerfil> {
     const { data } = await api.post<ExperienciaPerfil>('/perfil/experiencias', payload); return data;
   },
