@@ -19,6 +19,20 @@ export interface PerfilResponseDTO {
   experiencias: ExperienciaPerfil[];
   educacion: EducacionPerfil[];
   habilidades: HabilidadPerfil[];
+  razonSocial?: string;
+  nombreComercial?: string;
+  ruc?: string;
+  emailCorporativo?: string;
+  sitioWeb?: string;
+  industria?: string;
+  tamano?: string;
+  direccion?: string;
+  descripcion?: string;
+  logo?: string;
+  bannerColor?: string;
+  estadoVerificacion?: string;
+  beneficios?: string[];
+  redes?: { linkedin?: string; twitter?: string; github?: string };
 }
 
 export interface ExperienciaPerfil { id: string; empresa: string; cargo: string; descripcion?: string; fechaInicio?: string; fechaFin?: string; actual?: boolean; ubicacion?: string; modalidad?: string; }

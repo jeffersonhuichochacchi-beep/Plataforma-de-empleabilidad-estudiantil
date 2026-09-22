@@ -8,6 +8,9 @@ import com.elp.usuarios_service.dto.ExperienciaRequest;
 import com.elp.usuarios_service.dto.HabilidadRequest;
 import com.elp.usuarios_service.dto.PerfilUpdateRequest;
 import com.elp.usuarios_service.repository.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +38,7 @@ public class PerfilService {
     private final ProfileCompletionService profileCompletionService;
     private final CloudinaryProfileService cloudinaryProfileService;
     private final SupabaseAuthClient supabaseAuthClient;
+    private final ObjectMapper objectMapper;
 
     /**
      * Resuelve el usuario autenticado tanto cuando Spring Security entrega el
@@ -76,7 +80,7 @@ public class PerfilService {
             boolean tieneCvActivo = documentoCVRepository.findByUsuarioIdAndActivoTrue(usuarioId).isPresent();
             
             result = profileCompletionService.evaluarEstudiante(estudiante, educaciones, tieneCvActivo);
-        } else if (usuario.getRol() == Rol.EMPRESA) {
+        } else if (usuario instanceof Empresa) {
             Empresa empresa = empresaRepository.findById(usuarioId)
                     .orElseThrow(() -> new IllegalArgumentException("Empresa no encontrada"));
             nombreParaMostrar = empresa.getRazonSocial() != null ? empresa.getRazonSocial() : empresa.getEmail();
@@ -125,12 +129,25 @@ public class PerfilService {
         if (usuario instanceof Estudiante e) {
             response.nombres(e.getNombres()).apellidos(e.getApellidos()).biografia(e.getBiografia())
                     .tituloProfesional(e.getTituloProfesional()).ubicacion(e.getUbicacion()).enlacePortafolio(e.getEnlacePortafolio());
+        } else if (usuario instanceof Empresa e) {
+            response.razonSocial(e.getRazonSocial()).nombreComercial(e.getNombreComercial()).ruc(e.getRuc())
+                    .emailCorporativo(e.getEmailCorporativo()).sitioWeb(e.getSitioWeb()).industria(e.getIndustria())
+                    .tamano(e.getTamano()).ubicacion(e.getUbicacion()).direccion(e.getDireccion()).descripcion(e.getDescripcion())
+                    .logo(e.getLogo()).bannerColor(e.getBannerColor()).estadoVerificacion(e.getEstadoVerificacion())
+                    .beneficios(deserializarBeneficios(e.getBeneficios()))
+                    .redes(PerfilResponseDTO.RedesDTO.builder().linkedin(e.getLinkedinUrl()).twitter(e.getTwitterUrl()).github(e.getGithubUrl()).build());
         }
         return response.build();
     }
 
     @Transactional
     public PerfilResponseDTO actualizarPerfil(UUID usuarioId, PerfilUpdateRequest request) {
+        UsuarioBase usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        if (usuario instanceof Empresa empresa) {
+            actualizarEmpresa(usuario, empresa, request);
+            return obtenerMiPerfil(usuarioId);
+        }
         Estudiante estudiante = estudianteRepository.findById(usuarioId)
                 .orElseThrow(() -> new IllegalArgumentException("Solo los candidatos pueden actualizar este perfil"));
         if (request.getNombres() != null) estudiante.setNombres(request.getNombres().trim());
@@ -147,6 +164,39 @@ public class PerfilService {
         if (request.getEnlacePortafolio() != null) estudiante.setEnlacePortafolio(request.getEnlacePortafolio());
         estudianteRepository.save(estudiante);
         return obtenerMiPerfil(usuarioId);
+    }
+
+    private void actualizarEmpresa(UsuarioBase usuario, Empresa empresa, PerfilUpdateRequest request) {
+        if (request.getRazonSocial() != null && !request.getRazonSocial().isBlank()) empresa.setRazonSocial(request.getRazonSocial().trim());
+        if (request.getNombreComercial() != null) empresa.setNombreComercial(request.getNombreComercial().trim());
+        if (request.getEmailCorporativo() != null) empresa.setEmailCorporativo(request.getEmailCorporativo().trim());
+        if (request.getSitioWeb() != null) empresa.setSitioWeb(request.getSitioWeb().trim());
+        if (request.getIndustria() != null) empresa.setIndustria(request.getIndustria().trim());
+        if (request.getTamano() != null) empresa.setTamano(request.getTamano().trim());
+        if (request.getUbicacion() != null) empresa.setUbicacion(request.getUbicacion().trim());
+        if (request.getDireccion() != null) empresa.setDireccion(request.getDireccion().trim());
+        if (request.getDescripcion() != null) empresa.setDescripcion(request.getDescripcion().trim());
+        if (request.getLogo() != null) empresa.setLogo(request.getLogo().trim());
+        if (request.getBannerColor() != null) empresa.setBannerColor(request.getBannerColor().trim());
+        if (request.getBeneficios() != null) empresa.setBeneficios(serializarBeneficios(request.getBeneficios()));
+        if (request.getLinkedin() != null) empresa.setLinkedinUrl(request.getLinkedin().trim());
+        if (request.getTwitter() != null) empresa.setTwitterUrl(request.getTwitter().trim());
+        if (request.getGithub() != null) empresa.setGithubUrl(request.getGithub().trim());
+        if (request.getTelefono() != null && !request.getTelefono().isBlank()) {
+            supabaseAuthClient.updatePhone(usuario.getAuthUserId(), request.getTelefono().trim());
+        }
+        empresaRepository.save(empresa);
+    }
+
+    private String serializarBeneficios(List<String> beneficios) {
+        try { return objectMapper.writeValueAsString(beneficios); }
+        catch (JsonProcessingException e) { throw new IllegalArgumentException("Beneficios inválidos", e); }
+    }
+
+    private List<String> deserializarBeneficios(String beneficios) {
+        if (beneficios == null || beneficios.isBlank()) return List.of();
+        try { return objectMapper.readValue(beneficios, new TypeReference<>() {}); }
+        catch (Exception e) { return List.of(beneficios); }
     }
 
     @Transactional

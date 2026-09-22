@@ -30,6 +30,28 @@ public class PerfilResponseDTO {
     private List<EducacionDTO> educacion;
     private List<HabilidadDTO> habilidades;
     private String cvNombre;
+    private String razonSocial;
+    private String nombreComercial;
+    private String ruc;
+    private String emailCorporativo;
+    private String sitioWeb;
+    private String industria;
+    private String tamano;
+    private String direccion;
+    private String descripcion;
+    private String logo;
+    private String bannerColor;
+    private String estadoVerificacion;
+    private List<String> beneficios;
+    private RedesDTO redes;
+
+    @Data
+    @Builder
+    public static class RedesDTO {
+        private String linkedin;
+        private String twitter;
+        private String github;
+    }
 
     @Data
     @Builder

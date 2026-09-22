@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   MapPin, Globe, Mail, Phone, ShieldCheck, 
   Sparkles, Camera, Save, CheckCircle2, Edit3, Briefcase, 
@@ -7,6 +7,7 @@ import {
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { Button } from '@/shared/components/Button';
 import toast from 'react-hot-toast';
+import { profileService } from '../services/profile.service';
 
 interface EmpresaProfileData {
   razonSocial: string;
@@ -48,6 +49,8 @@ const BENEFICIOS_DISPONIBLES = [
 export const CompanyProfileView: React.FC = () => {
   const { user } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'GENERAL' | 'CONTACTO' | 'CULTURA' | 'SEGURIDAD'>('GENERAL');
   
   // Contraseñas
@@ -99,12 +102,57 @@ export const CompanyProfileView: React.FC = () => {
     };
   });
 
+  useEffect(() => {
+    let mounted = true;
+    profileService.getMiPerfil()
+      .then((data) => {
+        if (!mounted || (data.rol !== 'EMPRESA' && data.rol !== 'RECLUTADOR')) return;
+        setProfile((previous) => ({
+          ...previous,
+          razonSocial: data.razonSocial ?? previous.razonSocial,
+          nombreComercial: data.nombreComercial ?? previous.nombreComercial,
+          ruc: data.ruc ?? previous.ruc,
+          email: data.email ?? previous.email,
+          emailCorporativo: data.emailCorporativo ?? previous.emailCorporativo,
+          telefono: data.telefono ?? previous.telefono,
+          sitioWeb: data.sitioWeb ?? previous.sitioWeb,
+          industria: data.industria ?? previous.industria,
+          tamano: data.tamano ?? previous.tamano,
+          ubicacion: data.ubicacion ?? previous.ubicacion,
+          direccion: data.direccion ?? previous.direccion,
+          descripcion: data.descripcion ?? previous.descripcion,
+          logo: data.logo ?? previous.logo,
+          bannerColor: data.bannerColor ?? previous.bannerColor,
+          estadoVerificacion: (data.estadoVerificacion as EmpresaProfileData['estadoVerificacion']) ?? previous.estadoVerificacion,
+          beneficios: data.beneficios ?? previous.beneficios,
+          redes: { ...previous.redes, ...(data.redes ?? {}) }
+        }));
+      })
+      .catch(() => toast.error('No se pudo cargar el perfil de la empresa.'))
+      .finally(() => { if (mounted) setIsLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
   // Guardar cambios
-  const handleSaveChanges = (e?: React.FormEvent) => {
+  const handleSaveChanges = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    localStorage.setItem('empresa_profile_custom', JSON.stringify(profile));
-    setIsEditing(false);
-    toast.success('¡Perfil de la empresa actualizado correctamente!');
+    setIsSaving(true);
+    try {
+      await profileService.updateProfile({
+      razonSocial: profile.razonSocial, nombreComercial: profile.nombreComercial,
+      emailCorporativo: profile.emailCorporativo, telefono: profile.telefono,
+      sitioWeb: profile.sitioWeb, industria: profile.industria, tamano: profile.tamano,
+      ubicacion: profile.ubicacion, direccion: profile.direccion, descripcion: profile.descripcion,
+      logo: profile.logo, bannerColor: profile.bannerColor, beneficios: profile.beneficios,
+      linkedin: profile.redes.linkedin, twitter: profile.redes.twitter, github: profile.redes.github
+      });
+      setIsEditing(false);
+      toast.success('Perfil de la empresa actualizado correctamente.');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'No se pudo actualizar el perfil de la empresa.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Toggle beneficio
@@ -142,6 +190,8 @@ export const CompanyProfileView: React.FC = () => {
     setConfirmPass('');
   };
 
+  if (isLoading) return <div className="flex min-h-64 items-center justify-center text-slate-500">Cargando perfil de empresa...</div>;
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300 pb-12">
       {/* 1. Header Banner & Perfil Principal */}
@@ -163,6 +213,7 @@ export const CompanyProfileView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleSaveChanges()}
+                  disabled={isSaving}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg transition-all flex items-center gap-1.5"
                 >
                   <Save className="h-4 w-4" />

@@ -47,6 +47,22 @@ public class Empresa extends UsuarioBase {
     @Column(name = "estado_verificacion")
     private String estadoVerificacion = "PENDIENTE";
 
+    @Column(name = "banner_color", length = 100)
+    private String bannerColor;
+
+    /** Se almacena como JSON para conservar la lista de beneficios del perfil. */
+    @Column(columnDefinition = "text")
+    private String beneficios;
+
+    @Column(name = "linkedin_url")
+    private String linkedinUrl;
+
+    @Column(name = "twitter_url")
+    private String twitterUrl;
+
+    @Column(name = "github_url")
+    private String githubUrl;
+
     @Column(name = "fecha_verificacion")
     private Timestamp fechaVerificacion;
 }
