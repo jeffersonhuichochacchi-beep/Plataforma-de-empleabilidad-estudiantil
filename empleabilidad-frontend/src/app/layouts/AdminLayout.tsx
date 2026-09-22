@@ -21,6 +21,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { useAuthStore } from '../../features/auth/store/useAuthStore';
+import { adminDashboardService } from '../../features/admin/services/admin-dashboard.service';
 import toast from 'react-hot-toast';
 
 interface MenuItem {
@@ -37,10 +38,29 @@ export const AdminLayout = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [search, setSearch] = useState('');
   const [showModules, setShowModules] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationCounts, setNotificationCounts] = useState({ users: 0, offers: 0 });
   const [showLanguages, setShowLanguages] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('admin_theme') === 'dark');
   const [language, setLanguage] = useState<'es' | 'en'>(() => localStorage.getItem('admin_language') === 'en' ? 'en' : 'es');
   const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadNotificationCounts = async () => {
+      try {
+        const summary = await adminDashboardService.getResumen();
+        if (mounted) setNotificationCounts({ users: summary.usuarios.usuariosPendientes, offers: summary.ofertas.ofertasPendientes });
+      } catch {
+        // Keep the header available if the dashboard service is temporarily unreachable.
+      }
+    };
+    void loadNotificationCounts();
+    const timer = window.setInterval(loadNotificationCounts, 30000);
+    return () => { mounted = false; window.clearInterval(timer); };
+  }, []);
+
+  const notificationTotal = notificationCounts.users + notificationCounts.offers;
 
   const handleLogout = () => {
     if (user) {
@@ -259,10 +279,38 @@ export const AdminLayout = () => {
             {showModules && <div className="absolute right-0 top-11 z-50 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg"><p className="px-2 pb-1 text-xs font-semibold uppercase text-slate-400">{language === 'en' ? 'Quick access' : 'Accesos rápidos'}</p>{appsPages.slice(0, 6).map(page => <button key={page.path} onClick={() => { navigate(page.path); setShowModules(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-slate-700 hover:bg-violet-50">{translate(page.label, page.path)}</button>)}</div>}
             </div>
             
-            <button onClick={() => navigate('/admin/notificaciones')} className="p-2 hover:bg-slate-100 rounded-lg transition-colors relative" title="Notificaciones">
-              <Bell className="w-5 h-5 text-slate-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(value => !value)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors relative"
+                title="Notificaciones"
+                aria-label={`Notificaciones${notificationTotal ? `: ${notificationTotal} pendientes` : ''}`}
+                aria-expanded={showNotifications}
+                aria-haspopup="true"
+              >
+                <Bell className="w-5 h-5 text-slate-600" />
+                {notificationTotal > 0 && <span className="absolute -top-0.5 -right-1 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] leading-4 font-semibold rounded-full text-center">{notificationTotal > 99 ? '99+' : notificationTotal}</span>}
+              </button>
+              {showNotifications && (
+                <div className={`absolute right-0 top-11 z-50 w-80 rounded-xl border shadow-lg ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{language === 'en' ? 'Notifications' : 'Notificaciones'}</p>
+                    <span className="text-xs text-slate-500">{notificationTotal} {language === 'en' ? 'pending' : 'pendientes'}</span>
+                  </div>
+                  <div className="p-2">
+                    {notificationTotal === 0 ? (
+                      <p className="px-3 py-4 text-sm text-slate-500">{language === 'en' ? 'You are all caught up.' : 'No tienes notificaciones pendientes.'}</p>
+                    ) : (
+                      <>
+                        {notificationCounts.users > 0 && <button onClick={() => { navigate('/admin/usuarios'); setShowNotifications(false); }} className="w-full rounded-lg px-3 py-2.5 text-left hover:bg-violet-50"><span className="block text-sm font-medium text-slate-800">{language === 'en' ? 'Users awaiting review' : 'Usuarios pendientes de revisión'}</span><span className="text-xs text-slate-500">{notificationCounts.users} {language === 'en' ? 'pending' : 'pendientes'}</span></button>}
+                        {notificationCounts.offers > 0 && <button onClick={() => { navigate('/admin/ofertas/listado'); setShowNotifications(false); }} className="w-full rounded-lg px-3 py-2.5 text-left hover:bg-violet-50"><span className="block text-sm font-medium text-slate-800">{language === 'en' ? 'Offers awaiting approval' : 'Ofertas pendientes de aprobación'}</span><span className="text-xs text-slate-500">{notificationCounts.offers} {language === 'en' ? 'pending' : 'pendientes'}</span></button>}
+                      </>
+                    )}
+                  </div>
+                  <div className="border-t border-slate-200 p-2"><button onClick={() => { navigate('/admin/notificaciones'); setShowNotifications(false); }} className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-violet-700 hover:bg-violet-50">{language === 'en' ? 'View all notifications' : 'Ver todas las notificaciones'}</button></div>
+                </div>
+              )}
+            </div>
 
             <div className="w-px h-6 bg-slate-200 mx-2"></div>
             
