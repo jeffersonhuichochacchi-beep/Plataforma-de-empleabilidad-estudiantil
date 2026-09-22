@@ -155,8 +155,6 @@ public class PerfilService {
         if (request.getApellidos() != null) estudiante.setApellidos(request.getApellidos().trim());
         if (request.getTelefono() != null) {
             String phone = request.getTelefono().trim();
-            UsuarioBase usuario = usuarioRepository.findById(usuarioId)
-                    .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
             supabaseAuthClient.updatePhone(usuario.getAuthUserId(), phone);
         }
         estudiante.setBiografia(request.getBiografia());
