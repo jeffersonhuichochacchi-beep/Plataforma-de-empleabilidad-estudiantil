@@ -3,18 +3,14 @@ import {
   Settings,
   Shield,
   Briefcase,
-  Sparkles,
   Bell,
   Database,
   Save,
   RotateCcw,
-  CheckCircle2,
   AlertTriangle,
   Globe,
   Mail,
   Lock,
-  Sliders,
-  Cpu,
   HardDrive,
   Download,
   Trash2,
@@ -31,7 +27,7 @@ import toast from 'react-hot-toast';
 import { api } from '@/core/api';
 
 // ─── Pestañas ──────────────────────────────────────────────────────────────────
-type TabType = 'general' | 'seguridad' | 'empleabilidad' | 'ia' | 'notificaciones' | 'sistema';
+type TabType = 'general' | 'seguridad' | 'empleabilidad' | 'notificaciones' | 'sistema';
 
 interface TabItem {
   id: TabType;
@@ -44,7 +40,6 @@ const TABS: TabItem[] = [
   { id: 'general', label: 'General', icon: Globe, description: 'Identidad, idiomas y mantenimiento' },
   { id: 'seguridad', label: 'Seguridad & Acceso', icon: Shield, description: 'Contraseñas, 2FA y sesiones' },
   { id: 'empleabilidad', label: 'Reglas de Empleabilidad', icon: Briefcase, description: 'Límites y flujos de postulaciones' },
-  { id: 'ia', label: 'Analisis IA', icon: Sparkles, description: 'Matching, umbrales y análisis CV' },
   { id: 'notificaciones', label: 'Notificaciones & Correo', icon: Bell, description: 'Plantillas y canales de envío' },
   { id: 'sistema', label: 'Sistema & Backups', icon: Database, description: 'Base de datos, caché y almacenamiento' },
 ];
@@ -93,17 +88,6 @@ export const AdminConfiguracionView: React.FC = () => {
     puntajeMinimoAprobatorio: 70,
   });
 
-  const [iaConfig, setIaConfig] = useState({
-    iaHabilitada: true,
-    modeloActivo: 'default',
-    umbralMatchMinimo: 65,
-    analisisAutomaticoCV: true,
-    generarResumenCompatibilidad: true,
-    sugerirPreguntasEntrevista: true,
-    temperaturaModelo: 0.2,
-    maxTokensRespuesta: 1024,
-  });
-
   const [notifConfig, setNotifConfig] = useState({
     emailBienvenida: true,
     emailPostulacionRecibida: true,
@@ -134,7 +118,6 @@ export const AdminConfiguracionView: React.FC = () => {
         if (data.general) setGeneralConfig(current => ({ ...current, ...(data.general as Partial<typeof generalConfig>) }));
         if (data.seguridad) setSeguridadConfig(current => ({ ...current, ...(data.seguridad as Partial<typeof seguridadConfig>) }));
         if (data.empleabilidad) setEmpleabilidadConfig(current => ({ ...current, ...(data.empleabilidad as Partial<typeof empleabilidadConfig>) }));
-        if (data.ia) setIaConfig(current => ({ ...current, ...(data.ia as Partial<typeof iaConfig>) }));
         if (data.notificaciones) setNotifConfig(current => ({ ...current, ...(data.notificaciones as Partial<typeof notifConfig>) }));
         if (data.sistema) setSistemaConfig(current => ({ ...current, ...(data.sistema as Partial<typeof sistemaConfig>) }));
       } catch { if (mounted) toast.error('No se pudo cargar la configuración guardada'); }
@@ -157,7 +140,7 @@ export const AdminConfiguracionView: React.FC = () => {
   const handleSaveBackend = async () => {
     setSaving(true);
     try {
-      await api.put('/admin/configuracion', { general: generalConfig, seguridad: seguridadConfig, empleabilidad: empleabilidadConfig, ia: iaConfig, notificaciones: notifConfig, sistema: sistemaConfig });
+      await api.put('/admin/configuracion', { general: generalConfig, seguridad: seguridadConfig, empleabilidad: empleabilidadConfig, notificaciones: notifConfig, sistema: sistemaConfig });
       setHasChanges(false); toast.success('Configuración guardada exitosamente');
     } catch { toast.error('No se pudo guardar la configuración'); }
     finally { setSaving(false); }
@@ -214,7 +197,7 @@ export const AdminConfiguracionView: React.FC = () => {
               </span>
             </div>
             <p className="text-sm text-slate-500 mt-0.5">
-              Administra las políticas globales, reglas de negocio, motor de IA y parámetros de la plataforma.
+              Administra las políticas globales, reglas de negocio, parámetros de empleabilidad y parámetros de la plataforma.
             </p>
           </div>
         </div>
@@ -941,139 +924,6 @@ export const AdminConfiguracionView: React.FC = () => {
                   <p className="text-[11px] text-slate-400 mt-1">
                     Tiempo que tiene la empresa desde la preselección para citar al candidato.
                   </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =========================================================================
-            TAB 4: ANALISIS IA
-        ========================================================================= */}
-        {activeTab === 'ia' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-600" /> Configuracion del analisis de CV
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Ajustes para el análisis semántico de CVs, cálculo de compatibilidad y generación de reportes.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white shadow-md">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-white/10 backdrop-blur-md">
-                    <Cpu className="w-6 h-6 text-indigo-200" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white">Analisis automatico de CV</h3>
-                    <p className="text-xs text-indigo-200">
-                      El analisis se ejecuta al recibir una postulacion y depende de la configuracion del servidor.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-indigo-600" /> Parámetros de Matching
-                </h3>
-
-                <div>
-                  <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                    <span>Umbral Mínimo de Compatibilidad Sugerida</span>
-                    <span className="text-indigo-600 font-extrabold">{iaConfig.umbralMatchMinimo}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="40"
-                    max="90"
-                    value={iaConfig.umbralMatchMinimo}
-                    onChange={(e) => {
-                      setIaConfig({ ...iaConfig, umbralMatchMinimo: Number(e.target.value) });
-                      markChanged();
-                    }}
-                    className="w-full accent-indigo-600"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Los candidatos por debajo de este score no recibirán recomendación automática prioritaria.
-                  </p>
-                </div>
-              </div>
-
-              {/* Capacidades Autónomas */}
-              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-indigo-600" /> Funciones Autónomas de la IA
-                </h3>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-800">Análisis Automático de CV al Subir</p>
-                    <p className="text-[11px] text-slate-500">Extrae habilidades, experiencia e idiomas en segundos</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIaConfig({ ...iaConfig, analisisAutomaticoCV: !iaConfig.analisisAutomaticoCV });
-                      markChanged();
-                    }}
-                  >
-                    {iaConfig.analisisAutomaticoCV ? (
-                      <ToggleRight className="w-8 h-8 text-indigo-600" />
-                    ) : (
-                      <ToggleLeft className="w-8 h-8 text-slate-300" />
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-slate-200">
-                  <div>
-                    <p className="text-xs font-bold text-slate-800">Generar Resumen de Compatibilidad</p>
-                    <p className="text-[11px] text-slate-500">Muestra a las empresas puntos fuertes y gaps del postulante</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIaConfig({
-                        ...iaConfig,
-                        generarResumenCompatibilidad: !iaConfig.generarResumenCompatibilidad,
-                      });
-                      markChanged();
-                    }}
-                  >
-                    {iaConfig.generarResumenCompatibilidad ? (
-                      <ToggleRight className="w-8 h-8 text-indigo-600" />
-                    ) : (
-                      <ToggleLeft className="w-8 h-8 text-slate-300" />
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-slate-200">
-                  <div>
-                    <p className="text-xs font-bold text-slate-800">Sugerir Preguntas para Entrevista</p>
-                    <p className="text-[11px] text-slate-500">Preguntas técnicas basadas en el perfil de la oferta</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIaConfig({
-                        ...iaConfig,
-                        sugerirPreguntasEntrevista: !iaConfig.sugerirPreguntasEntrevista,
-                      });
-                      markChanged();
-                    }}
-                  >
-                    {iaConfig.sugerirPreguntasEntrevista ? (
-                      <ToggleRight className="w-8 h-8 text-indigo-600" />
-                    ) : (
-                      <ToggleLeft className="w-8 h-8 text-slate-300" />
-                    )}
-                  </button>
                 </div>
               </div>
             </div>
