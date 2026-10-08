@@ -109,7 +109,7 @@ const MOCK_REPORTES: AdminReporte[] = [
   {
     id: 'r-004',
     tipo: 'IA_MATCH',
-    titulo: 'Análisis de Compatibilidad IA Gemini — Semanal',
+    titulo: 'Análisis de Compatibilidad IA — Semanal',
     descripcion: 'Score promedio de matching, distribución por rango, ofertas con mayor compatibilidad y candidatos top.',
     estado: 'LISTO',
     formato: 'CSV',
@@ -119,7 +119,7 @@ const MOCK_REPORTES: AdminReporte[] = [
     fechaHasta: '2026-09-13',
     tamaño: '0.9 MB',
     registros: 892,
-    generadoPor: 'Motor IA Gemini',
+    generadoPor: 'Motor IA',
     programado: true,
     frecuencia: 'Semanal · Lunes 06:00 AM',
   },

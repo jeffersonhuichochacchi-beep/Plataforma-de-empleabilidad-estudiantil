@@ -44,7 +44,7 @@ const TABS: TabItem[] = [
   { id: 'general', label: 'General', icon: Globe, description: 'Identidad, idiomas y mantenimiento' },
   { id: 'seguridad', label: 'Seguridad & Acceso', icon: Shield, description: 'Contraseñas, 2FA y sesiones' },
   { id: 'empleabilidad', label: 'Reglas de Empleabilidad', icon: Briefcase, description: 'Límites y flujos de postulaciones' },
-  { id: 'ia', label: 'Motor IA Gemini', icon: Sparkles, description: 'Matching, umbrales y análisis CV' },
+  { id: 'ia', label: 'Analisis IA', icon: Sparkles, description: 'Matching, umbrales y análisis CV' },
   { id: 'notificaciones', label: 'Notificaciones & Correo', icon: Bell, description: 'Plantillas y canales de envío' },
   { id: 'sistema', label: 'Sistema & Backups', icon: Database, description: 'Base de datos, caché y almacenamiento' },
 ];
@@ -95,7 +95,7 @@ export const AdminConfiguracionView: React.FC = () => {
 
   const [iaConfig, setIaConfig] = useState({
     iaHabilitada: true,
-    modeloActivo: 'gemini-1.5-flash',
+    modeloActivo: 'default',
     umbralMatchMinimo: 65,
     analisisAutomaticoCV: true,
     generarResumenCompatibilidad: true,
@@ -948,22 +948,19 @@ export const AdminConfiguracionView: React.FC = () => {
         )}
 
         {/* =========================================================================
-            TAB 4: MOTOR IA GEMINI
+            TAB 4: ANALISIS IA
         ========================================================================= */}
         {activeTab === 'ia' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-600" /> Configuración del Motor Gemini AI
+                  <Sparkles className="w-5 h-5 text-indigo-600" /> Configuracion del analisis de CV
                 </h2>
                 <p className="text-xs text-slate-500">
                   Ajustes para el análisis semántico de CVs, cálculo de compatibilidad y generación de reportes.
                 </p>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Motor Activo (API Conectada)
-              </span>
             </div>
 
             <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white shadow-md">
@@ -973,20 +970,12 @@ export const AdminConfiguracionView: React.FC = () => {
                     <Cpu className="w-6 h-6 text-indigo-200" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-white">Google Gemini 1.5 Pro / Flash</h3>
+                    <h3 className="text-sm font-black text-white">Analisis automatico de CV</h3>
                     <p className="text-xs text-indigo-200">
-                      Latencia promedio: 240ms · 99.98% de disponibilidad · Token quota: 85% libre
+                      El analisis se ejecuta al recibir una postulacion y depende de la configuracion del servidor.
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    toast.success('Prueba de conexión con Gemini AI exitosa (Respuesta en 198ms)');
-                  }}
-                  className="px-4 py-2 bg-white text-indigo-900 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-colors shadow-sm"
-                >
-                  Probar Conexión
-                </button>
               </div>
             </div>
 
@@ -1015,24 +1004,6 @@ export const AdminConfiguracionView: React.FC = () => {
                   <p className="text-[11px] text-slate-400 mt-1">
                     Los candidatos por debajo de este score no recibirán recomendación automática prioritaria.
                   </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Modelo de Lenguaje Asignado
-                  </label>
-                  <select
-                    value={iaConfig.modeloActivo}
-                    onChange={(e) => {
-                      setIaConfig({ ...iaConfig, modeloActivo: e.target.value });
-                      markChanged();
-                    }}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800"
-                  >
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultrarrápido y eficiente)</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Máxima precisión para cargos sénior)</option>
-                    <option value="gemini-pro">Gemini 1.0 Pro (Compatibilidad clásica)</option>
-                  </select>
                 </div>
               </div>
 

@@ -209,7 +209,7 @@ const MOCK_NOTIFICACIONES: AdminNotificacion[] = [
     tipo: 'MATCH_IA',
     prioridad: 'BAJA',
     titulo: 'Análisis semanal de IA completado',
-    descripcion: 'El motor de matching de Gemini procesó 1.024 postulaciones con un score promedio de 81%. Se detectaron 34 matches de alta prioridad.',
+    descripcion: 'El motor de matching de IA procesó 1.024 postulaciones con un score promedio de 81%. Se detectaron 34 matches de alta prioridad.',
     leida: true,
     fijada: false,
     fecha: '2026-09-13T06:00:00Z',

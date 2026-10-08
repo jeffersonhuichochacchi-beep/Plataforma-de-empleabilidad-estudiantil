@@ -107,7 +107,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
               ofertaTitulo: jobTitle,
               postulacionId: app.uuid || app.id,
               tipo: 'IA_SCREENING',
-              tituloPrueba: 'Screening y Match de CV (Gemini IA)',
+              tituloPrueba: 'Screening y Match de CV (IA)',
               puntaje: aiScore,
               estado: aiScore >= 75 ? 'APROBADO' : aiScore >= 50 ? 'EN_REVISION' : 'DESCALIFICADO',
               fechaRealizacion: app.fechaPostulacion || new Date().toISOString(),
@@ -314,7 +314,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
     switch (tipo) {
       case 'IA_SCREENING':
         return {
-          label: 'Match IA Gemini',
+          label: 'Match IA',
           icon: Sparkles,
           bg: 'bg-purple-50',
           text: 'text-purple-700',
@@ -734,7 +734,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                 <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-100">
                   <div className="flex items-center gap-2 mb-2 text-purple-800 font-bold text-sm">
                     <Sparkles className="h-4 w-4 text-purple-600" />
-                    Diagnóstico de Inteligencia Artificial (Gemini)
+                    Diagnostico de compatibilidad
                   </div>
                   <p className="text-sm text-slate-700 leading-relaxed">
                     {selectedEvaluacion.resumenIa}
