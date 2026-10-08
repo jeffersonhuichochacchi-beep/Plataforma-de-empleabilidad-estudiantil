@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminUsuariosService } from '../services/admin-usuarios.service';
+import { downloadCsv } from '@/shared/utils/export';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 export type UserRole = 'ESTUDIANTE' | 'PROFESIONAL' | 'EMPRESA' | 'RECLUTADOR' | 'ADMINISTRADOR';
@@ -430,7 +431,7 @@ export const AdminUsuariosView: React.FC = () => {
         telefono: formData.telefono, ruc: formData.ruc, sector: formData.sector,
       });
       setUsers(prev => [created, ...prev]);
-      toast.success('Usuario creado satisfactoriamente. Contraseña temporal: Temporal123!');
+      toast.success('Usuario creado. El acceso debe configurarse mediante el proveedor de autenticación.');
       setIsNewUserModalOpen(false);
       setFormData({ nombreCompleto: '', email: '', rol: 'ESTUDIANTE', telefono: '', carrera: '', universidad: '', razonSocial: '', ruc: '', sector: '' });
       return;
@@ -471,7 +472,21 @@ export const AdminUsuariosView: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    toast.success('Descargando reporte de usuarios en formato CSV...');
+    if (filteredUsers.length === 0) {
+      toast.error('No hay usuarios para exportar con los filtros actuales.');
+      return;
+    }
+    downloadCsv('usuarios.csv', filteredUsers.map(user => ({
+      Nombre: user.nombreCompleto,
+      Correo: user.email,
+      Rol: user.rol,
+      Estado: user.estadoCuenta,
+      Telefono: user.telefono ?? '',
+      Empresa: user.razonSocial ?? '',
+      RUC: user.ruc ?? '',
+      FechaRegistro: user.fechaRegistro,
+    })));
+    toast.success('Archivo CSV de usuarios descargado.');
   };
 
   // Helper de Role Badge

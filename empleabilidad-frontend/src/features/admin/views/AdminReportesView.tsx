@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminDashboardService } from '../services/admin-dashboard.service';
+import { downloadCsv, downloadJson, printTableReport } from '@/shared/utils/export';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 type ReporteEstado = 'LISTO' | 'GENERANDO' | 'ERROR' | 'PROGRAMADO';
@@ -338,19 +339,19 @@ const NuevoReporteModal: React.FC<{
       tipo: selectedTipo,
       titulo: `${plantilla.titulo} — ${PERIODO_LABEL[form.periodo]}`,
       descripcion: plantilla.desc,
-      estado: 'GENERANDO',
+      estado: 'LISTO',
       formato: form.formato,
       periodo: form.periodo,
       fechaGeneracion: new Date().toISOString(),
       fechaDesde: form.desde,
       fechaHasta: form.hasta,
       tamaño: '—',
-      registros: 0,
+      registros: 1,
       generadoPor: 'Admin Plataforma ELP',
       programado: false,
     };
     onCreate(nuevo);
-    toast.success('Reporte en generación. Estará listo en breve.');
+    toast.success('Resumen del reporte generado y listo para descargar.');
     onClose();
   };
 
@@ -407,7 +408,7 @@ const NuevoReporteModal: React.FC<{
             <div>
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 block">Formato de salida</label>
               <div className="grid grid-cols-2 gap-2">
-                {(['PDF', 'CSV', 'XLSX', 'JSON'] as ReporteFormato[]).map(f => {
+                {(['PDF', 'CSV', 'JSON'] as ReporteFormato[]).map(f => {
                   const cfg = FORMATO_CFG[f];
                   return (
                     <button
@@ -599,6 +600,7 @@ const ReporteRow: React.FC<{
 
 // ─── Vista Principal ───────────────────────────────────────────────────────────
 export const AdminReportesView: React.FC = () => {
+  const REPORT_STORAGE_KEY = 'empleapro_admin_reportes_v1';
   const [reportes, setReportes] = useState<AdminReporte[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]     = useState('');
@@ -615,11 +617,14 @@ export const AdminReportesView: React.FC = () => {
       const data = await adminDashboardService.getResumen();
       const now = new Date().toISOString();
       const desde = now.slice(0, 10);
-      setReportes([
+      const liveReports: AdminReporte[] = [
         { id: 'live-usuarios', tipo: 'USUARIOS', titulo: 'Resumen actual de usuarios', descripcion: 'Conteo actual de usuarios, candidatos, empresas y cuentas pendientes.', estado: 'LISTO', formato: 'CSV', periodo: 'DIARIO', fechaGeneracion: now, fechaDesde: desde, fechaHasta: desde, tamaño: '—', registros: data.usuarios.totalUsuarios, generadoPor: 'Microservicio de usuarios', programado: false },
         { id: 'live-ofertas', tipo: 'OFERTAS', titulo: 'Resumen actual de ofertas', descripcion: 'Estado actual de las ofertas laborales registradas en la plataforma.', estado: 'LISTO', formato: 'CSV', periodo: 'DIARIO', fechaGeneracion: now, fechaDesde: desde, fechaHasta: desde, tamaño: '—', registros: data.ofertas.totalOfertas, generadoPor: 'Microservicio de ofertas', programado: false },
         { id: 'live-postulaciones', tipo: 'POSTULACIONES', titulo: 'Resumen actual de postulaciones', descripcion: 'Postulaciones, entrevistas y estados actuales del proceso de selección.', estado: 'LISTO', formato: 'CSV', periodo: 'DIARIO', fechaGeneracion: now, fechaDesde: desde, fechaHasta: desde, tamaño: '—', registros: data.postulaciones.totalPostulaciones, generadoPor: 'Microservicio de postulaciones', programado: false },
-      ]);
+      ];
+      let savedReports: AdminReporte[] = [];
+      try { savedReports = JSON.parse(localStorage.getItem(REPORT_STORAGE_KEY) || '[]') as AdminReporte[]; } catch { localStorage.removeItem(REPORT_STORAGE_KEY); }
+      setReportes([...savedReports, ...liveReports.filter(report => !savedReports.some(saved => saved.id === report.id))]);
     } catch { toast.error('No se pudieron cargar los datos de reportes'); }
     finally { setLoading(false); }
   }, []);
@@ -633,7 +638,7 @@ export const AdminReportesView: React.FC = () => {
     generando:  reportes.filter(r => r.estado === 'GENERANDO').length,
     error:      reportes.filter(r => r.estado === 'ERROR').length,
     programados: reportes.filter(r => r.programado).length,
-    totalSize:  '21.2 MB',
+    totalSize:  `${(new Blob([JSON.stringify(reportes)]).size / 1024).toFixed(1)} KB`,
   }), [reportes]);
 
   // Filtrado
@@ -652,15 +657,18 @@ export const AdminReportesView: React.FC = () => {
   }, [reportes, search, filterTipo, filterEstado, filterPeriodo, activeTab]);
 
   const handleDownload = (r: AdminReporte) => {
-    const row = r.tipo === 'USUARIOS' ? ['Usuarios', r.registros, '—'] : r.tipo === 'OFERTAS' ? ['Ofertas', r.registros, '—'] : ['Postulaciones', r.registros, '—'];
-    const csv = ['Reporte,Registros,Fecha', row.join(',')].join('\n');
-    const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
-    const link = document.createElement('a'); link.href = url; link.download = `${r.tipo.toLowerCase()}-reporte.csv`; link.click(); URL.revokeObjectURL(url);
-    toast.success(`Reporte descargado en formato CSV`);
+    const rows = [{ Reporte: r.titulo, Tipo: TIPO_LABEL[r.tipo], Periodo: PERIODO_LABEL[r.periodo], Desde: r.fechaDesde, Hasta: r.fechaHasta, Registros: r.registros, Estado: ESTADO_CFG[r.estado].label, Generado: new Date(r.fechaGeneracion).toLocaleString('es-CO'), Descripcion: r.descripcion }];
+    const filename = `${r.tipo.toLowerCase()}-reporte`;
+    if (r.formato === 'PDF') {
+      if (!printTableReport(r.titulo, rows)) { toast.error('Permite ventanas emergentes para guardar el reporte como PDF.'); return; }
+    } else if (r.formato === 'JSON') downloadJson(`${filename}.json`, rows);
+    else downloadCsv(`${filename}.csv`, rows);
+    toast.success(`Reporte ${r.formato} preparado.`);
   };
-  const handleDelete   = (id: string) => { setReportes(p => p.filter(r => r.id !== id)); if (selected?.id === id) setSelected(null); toast.success('Reporte eliminado'); };
-  const handleRetry    = (id: string) => { setReportes(p => p.map(r => r.id === id ? { ...r, estado: 'GENERANDO' } : r)); toast.success('Reintentando generación...'); };
-  const handleCreate   = (r: AdminReporte) => { setReportes(p => [r, ...p]); };
+  const saveReports = (items: AdminReporte[]) => localStorage.setItem(REPORT_STORAGE_KEY, JSON.stringify(items.filter(item => !item.id.startsWith('live-'))));
+  const handleDelete = (id: string) => { const next = reportes.filter(r => r.id !== id); setReportes(next); saveReports(next); if (selected?.id === id) setSelected(null); toast.success('Reporte quitado de la lista actual.'); };
+  const handleRetry = (id: string) => { const next = reportes.map(r => r.id === id ? { ...r, estado: 'LISTO' as const, fechaGeneracion: new Date().toISOString() } : r); setReportes(next); saveReports(next); toast.success('Resumen actualizado y listo para descargar.'); };
+  const handleCreate = (r: AdminReporte) => { const next = [{ ...r, estado: 'LISTO' as const, registros: 1 }, ...reportes]; setReportes(next); saveReports(next); };
 
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto min-h-screen">

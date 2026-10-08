@@ -9,6 +9,7 @@ import { jobService } from '../services/job.service';
 import type { PostulacionResponse, OfertaResponse, RecomendacionEvaluacion } from '../types/job.types';
 import { Button } from '@/shared/components/Button';
 import toast from 'react-hot-toast';
+import { printTableReport } from '@/shared/utils/export';
 
 export type TipoEvaluacion = 'IA_SCREENING' | 'PRUEBA_TECNICA' | 'PSICOMETRICO' | 'ENTREVISTA_TECNICA';
 export type EstadoEvaluacion = 'COMPLETADA' | 'EN_REVISION' | 'EN_PROGRESO' | 'PENDIENTE' | 'APROBADO' | 'DESCALIFICADO';
@@ -360,6 +361,22 @@ export const CompanyEvaluacionesView: React.FC = () => {
     if (puntaje >= 70) return 'text-blue-600 bg-blue-50 border-blue-200';
     if (puntaje >= 50) return 'text-amber-600 bg-amber-50 border-amber-200';
     return 'text-rose-600 bg-rose-50 border-rose-200';
+  };
+
+  const handleDownloadReport = (evaluation: EvaluacionItem) => {
+    const opened = printTableReport(`Informe de evaluacion - ${evaluation.candidatoNombre}`, [{
+      Candidato: evaluation.candidatoNombre,
+      Correo: evaluation.candidatoEmail,
+      Vacante: evaluation.ofertaTitulo,
+      Evaluacion: evaluation.tituloPrueba,
+      Puntaje: `${evaluation.puntaje}%`,
+      Estado: evaluation.estado,
+      Fecha: new Date(evaluation.fechaRealizacion).toLocaleDateString('es-CO'),
+      Habilidades: evaluation.habilidadesEvaluadas.join(', '),
+      Resumen: evaluation.resumenIa ?? '',
+      Comentarios: evaluation.comentariosEvaluador ?? '',
+    }]);
+    if (!opened) toast.error('Permite las ventanas emergentes para imprimir el informe como PDF.');
   };
 
   return (
@@ -773,7 +790,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
                 Cerrar
               </Button>
               <button
-                onClick={() => toast.success(`Informe PDF generado para ${selectedEvaluacion.candidatoNombre}`)}
+                onClick={() => handleDownloadReport(selectedEvaluacion)}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />

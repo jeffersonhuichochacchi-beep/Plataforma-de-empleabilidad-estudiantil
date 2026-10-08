@@ -25,6 +25,7 @@ import {
   Send,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { adminDashboardService } from '../services/admin-dashboard.service';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
@@ -289,8 +290,9 @@ const NotifCard: React.FC<{
   onDelete: (id: string) => void;
   onPin: (id: string) => void;
   onSelect: (notif: AdminNotificacion) => void;
+  onAction: (path?: string) => void;
   isSelected: boolean;
-}> = ({ notif, onRead, onDelete, onPin, onSelect, isSelected }) => {
+}> = ({ notif, onRead, onDelete, onPin, onSelect, onAction, isSelected }) => {
   const cfg  = TIPO_CONFIG[notif.tipo];
   const pcfg = PRIORIDAD_CONFIG[notif.prioridad];
 
@@ -347,7 +349,7 @@ const NotifCard: React.FC<{
           </span>
           {notif.accionLabel && (
             <button
-              onClick={e => { e.stopPropagation(); toast.success(`Navegando: ${notif.accionLabel}`); }}
+              onClick={e => { e.stopPropagation(); onAction(notif.accionPath); }}
               className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
             >
               {notif.accionLabel} →
@@ -388,6 +390,9 @@ const NotifCard: React.FC<{
 
 // ─── Vista Principal ───────────────────────────────────────────────────────────
 export const AdminNotificacionesView: React.FC = () => {
+  const navigate = useNavigate();
+  const STORAGE_KEY = 'empleapro_admin_notificaciones_v1';
+  const PREFS_KEY = 'empleapro_admin_notificaciones_prefs_v1';
   const [notifs, setNotifs]           = useState<AdminNotificacion[]>([]);
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState('');
@@ -396,15 +401,42 @@ export const AdminNotificacionesView: React.FC = () => {
   const [filterPrio, setFilterPrio]   = useState<'TODOS' | NotifPrioridad>('TODOS');
   const [selected, setSelected]       = useState<AdminNotificacion | null>(null);
   const [activeTab, setActiveTab]     = useState<'INBOX' | 'FIJADAS' | 'CONFIGURACION'>('INBOX');
-  const [prefs, setPrefs]             = useState(PREFS_INICIAL);
+  const [prefs, setPrefs]             = useState<typeof PREFS_INICIAL>(() => {
+    try { return { ...PREFS_INICIAL, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') as Partial<typeof PREFS_INICIAL> }; }
+    catch { return PREFS_INICIAL; }
+  });
   const [showCompose, setShowCompose] = useState(false);
   const [composeMsg, setComposeMsg]   = useState({ titulo: '', mensaje: '', tipo: 'SISTEMA' as NotifTipo });
 
   useEffect(() => {
     let mounted = true;
-    const load = async () => { try { const data = await adminDashboardService.getResumen(); if (mounted) setNotifs(buildLiveNotifications(data)); } catch { if (mounted) toast.error('No se pudieron cargar las notificaciones'); } finally { if (mounted) setLoading(false); } };
+    const load = async () => {
+      try {
+        const data = await adminDashboardService.getResumen();
+        if (mounted) {
+          const live = buildLiveNotifications(data);
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as AdminNotificacion[];
+          const savedById = new Map(saved.map(item => [item.id, item]));
+          const merged = live.map(item => ({ ...item, ...savedById.get(item.id) }));
+          merged.push(...saved.filter(item => !live.some(current => current.id === item.id) && !item.id.startsWith('live-')));
+          setNotifs(merged);
+        }
+      } catch { if (mounted) toast.error('No se pudieron cargar las notificaciones'); }
+      finally { if (mounted) setLoading(false); }
+    };
     void load(); const timer = window.setInterval(load, 30000); return () => { mounted = false; window.clearInterval(timer); };
   }, []);
+
+  useEffect(() => { if (!loading) localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs)); }, [loading, notifs]);
+  useEffect(() => { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }, [prefs]);
+
+  const updateNotifications = (update: (current: AdminNotificacion[]) => AdminNotificacion[]) => {
+    setNotifs(current => {
+      const next = update(current);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Estadísticas
   const stats = useMemo(() => ({
@@ -438,21 +470,21 @@ export const AdminNotificacionesView: React.FC = () => {
   }, [notifs, search, filterTipo, filterLeida, filterPrio, activeTab]);
 
   const markRead    = (id: string) => {
-    setNotifs(p => p.map(n => n.id === id ? { ...n, leida: true } : n));
+    updateNotifications(p => p.map(n => n.id === id ? { ...n, leida: true } : n));
     if (selected?.id === id) setSelected(p => p ? { ...p, leida: true } : null);
     toast.success('Notificación marcada como leída');
   };
   const markAllRead = () => {
-    setNotifs(p => p.map(n => ({ ...n, leida: true })));
+    updateNotifications(p => p.map(n => ({ ...n, leida: true })));
     toast.success('Todas las notificaciones marcadas como leídas');
   };
   const deleteNotif = (id: string) => {
-    setNotifs(p => p.filter(n => n.id !== id));
+    updateNotifications(p => p.filter(n => n.id !== id));
     if (selected?.id === id) setSelected(null);
     toast.success('Notificación eliminada');
   };
   const pinNotif = (id: string) => {
-    setNotifs(p => p.map(n => n.id === id ? { ...n, fijada: !n.fijada } : n));
+    updateNotifications(p => p.map(n => n.id === id ? { ...n, fijada: !n.fijada } : n));
     if (selected?.id === id) setSelected(p => p ? { ...p, fijada: !p.fijada } : null);
   };
   const togglePref = (key: NotifTipo) => {
@@ -475,10 +507,10 @@ export const AdminNotificacionesView: React.FC = () => {
       fijada: false,
       fecha: new Date().toISOString(),
     };
-    setNotifs(p => [nueva, ...p]);
+    updateNotifications(p => [nueva, ...p]);
     setShowCompose(false);
     setComposeMsg({ titulo: '', mensaje: '', tipo: 'SISTEMA' });
-    toast.success('Notificación enviada al sistema');
+    toast.success('Aviso guardado en este navegador.');
   };
 
   // ── Render: Panel de Detalle ──────────────────────────────────────────────
@@ -548,7 +580,7 @@ export const AdminNotificacionesView: React.FC = () => {
             <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
               <p className="text-xs text-indigo-700 font-semibold mb-2">Acción recomendada</p>
               <button
-                onClick={() => toast.success(`Navegando a: ${selected.accionLabel}`)}
+                onClick={() => selected.accionPath && navigate(selected.accionPath)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
               >
                 {selected.accionLabel} →
@@ -840,6 +872,7 @@ export const AdminNotificacionesView: React.FC = () => {
                     onDelete={deleteNotif}
                     onPin={pinNotif}
                     onSelect={n => { setSelected(n); if (!n.leida) markRead(n.id); }}
+                    onAction={path => path && navigate(path)}
                     isSelected={selected?.id === n.id}
                   />
                 ))

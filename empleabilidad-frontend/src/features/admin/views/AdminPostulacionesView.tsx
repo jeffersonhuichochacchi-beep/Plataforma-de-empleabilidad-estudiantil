@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminPostulacionesService } from '../services/admin-postulaciones.service';
+import { downloadCsv } from '@/shared/utils/export';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 export type EstadoPostulacion =
@@ -724,7 +725,23 @@ export const AdminPostulacionesView: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => toast.success('Exportando reporte CSV de postulaciones...')}
+            onClick={() => {
+              if (filtered.length === 0) {
+                toast.error('No hay postulaciones para exportar con los filtros actuales.');
+                return;
+              }
+              downloadCsv('postulaciones.csv', filtered.map(item => ({
+                Candidato: item.candidatoNombre,
+                Correo: item.candidatoEmail,
+                Vacante: item.ofertaTitulo,
+                Empresa: item.ofertaEmpresa,
+                Estado: ESTADO_CONFIG[item.estado].label,
+                Compatibilidad: `${item.matchScore}%`,
+                FechaPostulacion: item.fechaPostulacion,
+                FechaEntrevista: item.entrevistaFecha ?? '',
+              })));
+              toast.success('Archivo CSV de postulaciones descargado.');
+            }}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
           >
             <Download className="w-4 h-4 text-slate-500" />
