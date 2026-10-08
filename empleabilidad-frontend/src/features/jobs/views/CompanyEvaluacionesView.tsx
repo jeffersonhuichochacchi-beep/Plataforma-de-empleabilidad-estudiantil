@@ -84,7 +84,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
         const apps = appsRes.content || [];
         setPostulaciones(apps);
 
-        // 3. Convertir postulaciones en evaluaciones (Screening IA)
+        // 3. Convertir postulaciones en evaluaciones (Revision de CV)
         const allEvaluations: EvaluacionItem[] = [];
 
         for (const app of apps) {
@@ -107,7 +107,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
               ofertaTitulo: jobTitle,
               postulacionId: app.uuid || app.id,
               tipo: 'IA_SCREENING',
-              tituloPrueba: 'Screening y Match de CV (IA)',
+              tituloPrueba: 'Compatibilidad del CV',
               puntaje: aiScore,
               estado: aiScore >= 75 ? 'APROBADO' : aiScore >= 50 ? 'EN_REVISION' : 'DESCALIFICADO',
               fechaRealizacion: app.fechaPostulacion || new Date().toISOString(),
@@ -314,7 +314,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
     switch (tipo) {
       case 'IA_SCREENING':
         return {
-          label: 'Match IA',
+          label: 'Compatibilidad',
           icon: Sparkles,
           bg: 'bg-purple-50',
           text: 'text-purple-700',
@@ -374,7 +374,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
             </span>
           </div>
           <p className="text-slate-500 text-sm">
-            Monitorea el desempeño de tus candidatos, resultados de matching con IA y asigna pruebas a medida.
+            Monitorea el desempeño de tus candidatos, resultados de compatibilidad de perfiles y asigna pruebas a medida.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -407,7 +407,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
           </div>
           <div>
             <div className="text-2xl font-black text-purple-700">{metrics.iaScreenings}</div>
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Screening con IA</div>
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Revision de CV</div>
           </div>
         </div>
 
@@ -453,7 +453,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
           }`}
         >
           <Sparkles className="h-3.5 w-3.5 text-purple-600" />
-          Evaluaciones de IA ({evaluaciones.filter(e => e.tipo === 'IA_SCREENING').length})
+          Revision de CV ({evaluaciones.filter(e => e.tipo === 'IA_SCREENING').length})
         </button>
         <button
           onClick={() => setActiveTab('PRUEBA_TECNICA')}
@@ -501,7 +501,7 @@ export const CompanyEvaluacionesView: React.FC = () => {
               className="text-xs font-medium py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-700"
             >
               <option value="TODOS">Todos los tipos</option>
-              <option value="IA_SCREENING">Screening IA</option>
+              <option value="IA_SCREENING">Revision de CV</option>
               <option value="PRUEBA_TECNICA">Prueba Técnica</option>
               <option value="PSICOMETRICO">Psicométrico</option>
               <option value="ENTREVISTA_TECNICA">Entrevista</option>

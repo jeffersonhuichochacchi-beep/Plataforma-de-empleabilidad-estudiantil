@@ -329,7 +329,7 @@ const PostulacionDetailModal: React.FC<{
           {/* Match Score */}
           <div className={`rounded-xl p-4 ${matchColors.bg} flex items-center justify-between`}>
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">AI Match Score</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Compatibilidad Score</p>
               <div className="flex items-center gap-2">
                 <span className={`text-3xl font-extrabold ${matchColors.text}`}>{postulacion.matchScore}%</span>
                 <span className={`text-sm font-medium ${matchColors.text}`}>de compatibilidad</span>
@@ -785,7 +785,7 @@ export const AdminPostulacionesView: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:border-emerald-300 transition-all">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Match Promedio</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Compatibilidad promedio</p>
               <h3 className="text-2xl font-extrabold text-emerald-700 mt-1">{stats.avgMatch}%</h3>
             </div>
             <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -890,7 +890,7 @@ export const AdminPostulacionesView: React.FC = () => {
                   className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
                 >
                   <option value="recientes">Más recientes</option>
-                  <option value="match">Mayor match IA</option>
+                  <option value="match">Mayor compatibilidad</option>
                   <option value="nombre">Nombre (A-Z)</option>
                 </select>
               </div>
@@ -906,7 +906,7 @@ export const AdminPostulacionesView: React.FC = () => {
                     <th className="px-6 py-4">Candidato</th>
                     <th className="px-4 py-4">Oferta Aplicada</th>
                     <th className="px-4 py-4">Modalidad</th>
-                    <th className="px-4 py-4">Match IA</th>
+                    <th className="px-4 py-4">Compatibilidad</th>
                     <th className="px-4 py-4">Estado</th>
                     <th className="px-4 py-4">Fecha</th>
                     <th className="px-6 py-4 text-right">Acciones</th>

@@ -404,7 +404,7 @@ const ApplicationCard = ({
           {app.porcentajeCoincidencia != null && (
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-                🤖 {app.porcentajeCoincidencia}% coincidencia IA
+                {app.porcentajeCoincidencia}% de coincidencia
               </span>
               {app.cumpleRequerimientos != null && (
                 <span
@@ -496,7 +496,7 @@ const DetailModal = ({
           )}
           {app.resumenIa && (
             <div className="rounded-xl bg-blue-50 p-4">
-              <p className="mb-2 text-xs font-bold text-blue-800">🤖 Análisis IA</p>
+              <p className="mb-2 text-xs font-bold text-blue-800">🤖 Resumen del analisis</p>
               <p className="text-sm text-blue-900">{app.resumenIa}</p>
               {app.habilidadesEncontradas && (
                 <p className="mt-2 text-xs text-blue-700"><strong>Habilidades:</strong> {app.habilidadesEncontradas}</p>

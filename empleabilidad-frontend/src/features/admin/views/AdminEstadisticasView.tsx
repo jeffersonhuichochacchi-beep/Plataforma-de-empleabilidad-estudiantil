@@ -443,7 +443,7 @@ export const AdminEstadisticasView: React.FC = () => {
       {/* ── Tercera Fila: Cards de resumen rápido ─────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { icon: <Star className="w-5 h-5" />, label: 'AI Match Promedio', value: `${d.matchPromedio}%`, accent: 'bg-amber-50 text-amber-600', border: 'hover:border-amber-200' },
+          { icon: <Star className="w-5 h-5" />, label: 'Compatibilidad promedio', value: `${d.matchPromedio}%`, accent: 'bg-amber-50 text-amber-600', border: 'hover:border-amber-200' },
           { icon: <Building2 className="w-5 h-5" />, label: 'Empresas Registradas', value: d.empresasRegistradas, accent: 'bg-violet-50 text-violet-600', border: 'hover:border-violet-200' },
           { icon: <GraduationCap className="w-5 h-5" />, label: 'Estudiantes Activos', value: fmt(d.estudiantesActivos), accent: 'bg-blue-50 text-blue-600', border: 'hover:border-blue-200' },
           { icon: <Calendar className="w-5 h-5" />, label: 'Entrevistas Programadas', value: d.entrevistasProgramadas, accent: 'bg-emerald-50 text-emerald-600', border: 'hover:border-emerald-200' },
@@ -597,7 +597,7 @@ export const AdminEstadisticasView: React.FC = () => {
               <span className="font-bold text-indigo-700">Remoto</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500">Match promedio IA</span>
+              <span className="text-slate-500">Compatibilidad promedio</span>
               <span className="font-bold text-emerald-700">{d.matchPromedio}%</span>
             </div>
           </div>
@@ -620,7 +620,7 @@ export const AdminEstadisticasView: React.FC = () => {
               La plataforma creció <span className="text-yellow-300">+{d.usuariosDelta.toFixed(1)}%</span> en usuarios
             </h3>
             <p className="text-white/70 text-sm max-w-lg">
-              {fmt(d.postulaciones)} postulaciones procesadas con un AI Match promedio de {d.matchPromedio}%,
+              {fmt(d.postulaciones)} postulaciones procesadas con un compatibilidad promedio de {d.matchPromedio}%,
               logrando una tasa de conversión del {d.tasaConversion}% en el proceso de selección.
             </p>
           </div>
@@ -632,7 +632,7 @@ export const AdminEstadisticasView: React.FC = () => {
             <div className="w-px h-12 bg-white/20" />
             <div className="text-center">
               <p className="text-3xl font-extrabold">{d.matchPromedio}%</p>
-              <p className="text-xs text-white/70 mt-1">AI Match</p>
+              <p className="text-xs text-white/70 mt-1">Compatibilidad</p>
             </div>
             <div className="w-px h-12 bg-white/20" />
             <div className="text-center">

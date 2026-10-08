@@ -109,7 +109,7 @@ const MOCK_REPORTES: AdminReporte[] = [
   {
     id: 'r-004',
     tipo: 'IA_MATCH',
-    titulo: 'Análisis de Compatibilidad IA — Semanal',
+    titulo: 'Analisis de Compatibilidad — Semanal',
     descripcion: 'Score promedio de matching, distribución por rango, ofertas con mayor compatibilidad y candidatos top.',
     estado: 'LISTO',
     formato: 'CSV',
@@ -119,7 +119,7 @@ const MOCK_REPORTES: AdminReporte[] = [
     fechaHasta: '2026-09-13',
     tamaño: '0.9 MB',
     registros: 892,
-    generadoPor: 'Motor IA',
+    generadoPor: 'Sistema de compatibilidad',
     programado: true,
     frecuencia: 'Semanal · Lunes 06:00 AM',
   },
@@ -249,7 +249,7 @@ const PLANTILLAS = [
   },
   {
     tipo: 'IA_MATCH' as ReporteTipo,
-    titulo: 'Análisis de IA Matching',
+    titulo: 'Analisis de compatibilidad',
     desc: 'Scores de compatibilidad y candidatos top',
     icon: <Zap className="w-5 h-5" />,
     color: 'from-violet-500 to-purple-600',
@@ -288,7 +288,7 @@ const TIPO_LABEL: Record<ReporteTipo, string> = {
   OFERTAS:       'Ofertas',
   EMPRESAS:      'Empresas',
   CONVERSION:    'Conversión',
-  IA_MATCH:      'IA Match',
+  IA_MATCH:      'Compatibilidad',
   ENTREVISTAS:   'Entrevistas',
   ACTIVIDAD:     'Auditoría',
 };

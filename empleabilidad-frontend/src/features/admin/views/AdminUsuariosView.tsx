@@ -807,7 +807,7 @@ export const AdminUsuariosView: React.FC = () => {
                     { mod: 'Aprobar o rechazar postulaciones', cand: false, emp: true, rec: true, adm: true },
                     { mod: 'Programar entrevistas con candidatos', cand: false, emp: true, rec: true, adm: true },
                     { mod: 'Calificar evaluaciones internas', cand: false, emp: true, rec: true, adm: true },
-                    { mod: 'Screening y Match de IA', cand: false, emp: true, rec: true, adm: true },
+                    { mod: 'Revision y compatibilidad de CV', cand: false, emp: true, rec: true, adm: true },
                     { mod: 'Gestión global de cuentas de usuarios', cand: false, emp: false, rec: false, adm: true },
                     { mod: 'Auditoría, logs y configuración', cand: false, emp: false, rec: false, adm: true },
                   ].map((row, idx) => (
